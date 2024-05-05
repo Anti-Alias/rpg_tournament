@@ -120,7 +120,7 @@ impl FadeData {
 }
 
 pub struct FadeToScreen {
-    screen: Option<ScreenState>,
+    screen_state: Option<ScreenState>,
     fade_in_secs: f32,
     fade_out_secs: f32,
 }
@@ -128,7 +128,7 @@ pub struct FadeToScreen {
 impl FadeToScreen {
     pub fn new(screen: ScreenState, fade_in_secs: f32, fade_out_secs: f32) -> Self {
         Self {
-            screen: Some(screen),
+            screen_state: Some(screen),
             fade_in_secs,
             fade_out_secs,
         }
@@ -138,10 +138,10 @@ impl FadeToScreen {
 impl Task for FadeToScreen {
     fn start(&mut self, _world: &mut World, mut ctx: TaskCtx) {
         let state = Shared::new(FadeData::new());
-        let screen = self.screen.take().unwrap();
+        let screen_state = self.screen_state.take().unwrap();
         ctx.push(FadeIn::new(Color::BLACK, self.fade_in_secs, state.clone()));
         ctx.push(DespawnAll);
-        ctx.push(SetState::new(screen));
+        ctx.push(SetState::new(screen_state));
         ctx.push(FadeOut::new(self.fade_out_secs, state.clone()));
     }
 }
