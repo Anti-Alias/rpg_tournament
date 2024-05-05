@@ -1,8 +1,9 @@
 use std::time::Duration;
 use bevy::prelude::*;
 use crate::task::{SetState, Shared, Task, TaskCtx, TaskStatus};
-
 use super::{Despawnable, ScreenState};
+
+const FADE_Z_INDEX: ZIndex = ZIndex::Global(1024);
 
 /// Task that fades the screen to a certain color.
 /// Spawns a fullscreen "fade entity".
@@ -31,13 +32,14 @@ impl Task for FadeIn {
 
     // Spawns fullscreen fade entity
     fn start(&mut self, world: &mut World, _ctx: TaskCtx) {
-        const SCREEN_SIZE: Vec2 = Vec2::new(5000.0, 5000.0);
-        let mut bundle = SpriteBundle::default();
-        bundle.sprite.color = self.color;
-        bundle.sprite.custom_size = Some(Vec2::ONE);
-        bundle.transform.scale = SCREEN_SIZE.extend(1000.0);
-        let entity = world.spawn(bundle).id();
-        self.data.set(FadeData { entity });
+        let mut bundle = NodeBundle::default();
+        bundle.background_color = self.color.into();
+        bundle.style.width = Val::Percent(100.0);
+        bundle.style.height = Val::Percent(100.0);
+        bundle.transform.translation.z = -1000.0;
+        bundle.z_index = FADE_Z_INDEX;
+        let node = world.spawn(bundle).id();
+        self.data.set(FadeData { node });
     }
 
     // Updates fade's alpha over time.
@@ -46,11 +48,11 @@ impl Task for FadeIn {
             self.elapsed += delta;
             self.elapsed.as_secs_f32() / self.duration.as_secs_f32()
         };
-        let mut sprite = {
+        let mut node_color = {
             let data = self.data.get();
-            world.get_mut::<Sprite>(data.entity).unwrap()
+            world.get_mut::<BackgroundColor>(data.node).unwrap()
         };
-        sprite.color.set_a(percent_done.min(1.0));
+        node_color.0.set_a(percent_done.min(1.0));
         if self.elapsed < self.duration {
             TaskStatus::NotFinished
         }
@@ -85,11 +87,11 @@ impl Task for FadeOut {
             self.elapsed += delta;
             self.elapsed.as_secs_f32() / self.duration.as_secs_f32()
         };
-        let mut sprite = {
+        let mut node_color = {
             let data = self.data.get();
-            world.get_mut::<Sprite>(data.entity).unwrap()
+            world.get_mut::<BackgroundColor>(data.node).unwrap()
         };
-        sprite.color.set_a(1.0 - percent_done.min(1.0));
+        node_color.0.set_a(1.0 - percent_done.min(1.0));
         if self.elapsed < self.duration {
             TaskStatus::NotFinished
         }
@@ -100,19 +102,19 @@ impl Task for FadeOut {
 
     fn end(&self, world: &mut World) {
         let data = self.data.get();
-        world.despawn(data.entity);
+        world.despawn(data.node);
     }
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct FadeData {
-    entity: Entity,
+    node: Entity,
 }
 
 impl FadeData {
     pub const fn new() -> Self {
         Self {
-            entity: Entity::PLACEHOLDER,
+            node: Entity::PLACEHOLDER,
         }
     }
 }
@@ -137,11 +139,10 @@ impl Task for FadeToScreen {
     fn start(&mut self, _world: &mut World, mut ctx: TaskCtx) {
         let state = Shared::new(FadeData::new());
         let screen = self.screen.take().unwrap();
-        ctx.push(FadeIn::new(Color::RED, self.fade_in_secs, state.clone()));
+        ctx.push(FadeIn::new(Color::BLACK, self.fade_in_secs, state.clone()));
         ctx.push(DespawnAll);
         ctx.push(SetState::new(screen));
         ctx.push(FadeOut::new(self.fade_out_secs, state.clone()));
-        ctx.quit(true);
     }
 }
 
@@ -153,7 +154,7 @@ impl Task for DespawnAll {
         let mut query = world.query_filtered::<Entity, With<Despawnable>>();
         let entities: Vec<Entity> = query.iter(&world).collect();
         for entity in entities {
-            world.despawn(entity);
+            despawn_with_children_recursive(world, entity);
         }
     }
 }

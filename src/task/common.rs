@@ -41,7 +41,7 @@ pub struct DespawnHost;
 impl Task for DespawnHost {
     fn start(&mut self, world: &mut World, mut ctx: TaskCtx) {
         ctx.clear();
-        world.despawn(ctx.host);
+        world.despawn(ctx.host());
     }
 }
 

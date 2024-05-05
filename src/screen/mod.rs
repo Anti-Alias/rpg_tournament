@@ -28,12 +28,20 @@ pub enum ScreenState {
 pub struct Despawnable;
 
 fn spawn_title_screen(mut commands: Commands, assets: Res<AssetServer>) {
-    rooti(c_title_root, &assets, &mut commands, Despawnable, |_| {});
+    rooti(c_title_root, &assets, &mut commands, Despawnable, |p| {
+        text("New Game", (), c_font, p);
+        text("Continue", (), c_font, p);
+        text("Options", (), c_font, p);
+        text("Exit", (), c_font, p);
+    });
 }
 
 fn spawn_options_screen(mut commands: Commands, assets: Res<AssetServer>) {
-    rooti(c_options_root, &assets, &mut commands, Despawnable, |_| {});
-}
+    rooti(c_options_root, &assets, &mut commands, Despawnable, |p| {
+        text("Graphics", (), c_font, p);
+        text("Sound", (), c_font, p);
+        text("Back", (), c_font, p);
+    });}
 
 fn on_startup(mut commands: Commands) {
     commands.spawn(TaskRunner::update(MyTask));
@@ -46,5 +54,6 @@ impl Task for MyTask {
         ctx.push(FadeToScreen::new(ScreenState::Options, 1.5, 1.5));
         ctx.wait(1.5);
         ctx.push(FadeToScreen::new(ScreenState::Title, 1.5, 1.5));
+        ctx.quit(true);
     }
 }
