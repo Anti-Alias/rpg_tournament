@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bevy = "0.13"
+bevy-ui-dsl = "0.8.0"
 
 [dev-dependencies]
 bevy = { version = "0.13", features = ["dynamic_linking"] }

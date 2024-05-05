@@ -5,13 +5,13 @@ use std::time::Duration;
 use bevy::ecs::schedule::ScheduleLabel;
 use bevy::prelude::*;
 
+mod common;
+pub use common::*;
+
 /**
  * Allows for a set arbitrary tasks to be run one after another.
  */
-pub struct TaskPlugin<S> {
-    schedule: S,
-}
-
+pub struct TaskPlugin<S> { schedule: S }
 impl <S: ScheduleLabel> TaskPlugin<S> {
     pub fn new(schedule: S) -> Self {
         Self { schedule }
@@ -25,7 +25,10 @@ impl<S: ScheduleLabel + Clone> Plugin for TaskPlugin<S> {
     }
 }
 
-fn run_task_runners<S: ScheduleLabel>(world: &mut World, runners: &mut QueryState<(Entity, &mut TaskRunner<S>)>) {
+fn run_task_runners<S: ScheduleLabel>(
+    world: &mut World,
+    runners: &mut QueryState<(Entity, &mut TaskRunner<S>)>
+) {
     let delta = world.resource_mut::<Time>().delta();
     let runners: Vec<_> = runners
         .iter_mut(world)
@@ -75,18 +78,6 @@ impl TaskRunner<Update> {
 
 impl TaskRunner<FixedUpdate> {
     pub fn fixed_update(task: impl Task) -> Self {
-        Self::new(task)
-    }
-}
-
-impl TaskRunner<PreUpdate> {
-    pub fn pre_update(task: impl Task) -> Self {
-        Self::new(task)
-    }
-}
-
-impl TaskRunner<PostUpdate> {
-    pub fn post_update(task: impl Task) -> Self {
         Self::new(task)
     }
 }
@@ -219,83 +210,6 @@ pub enum TaskStatus {
     NotFinished,
     Finished,
     FinishedRemaining(Duration),
-}
-
-/// Clears all tasks in the [`TaskRunner`].
-/// No more tasks will run.
-/// Similar to [`DespawnHost`], except that the host entity does not despawn.
-pub struct Quit;
-impl Task for Quit {
-    fn start(&mut self, _world: &mut World, mut ctx: TaskCtx) {
-        ctx.clear();
-    }
-}
-
-/// Despawns the entity that contains the [TaskRunner].
-/// No more tasks will run.
-/// Similar to [`Quit`], except that the host entity also despawns.
-pub struct DespawnHost;
-impl Task for DespawnHost {
-    fn start(&mut self, world: &mut World, mut ctx: TaskCtx) {
-        ctx.clear();
-        world.despawn(ctx.host);
-    }
-}
-
-/// Performs an arbitrary task during start().
-pub struct Do<F>(Option<F>);
-impl<F> Do<F>
-where
-    F: FnOnce(&mut World) + Send + Sync + 'static
-{
-    pub fn new(callback: F) -> Self {
-        Self(Some(callback))
-    }
-}
-
-impl<F> Task for Do<F>
-where
-    F: FnOnce(&mut World) + Send + Sync + 'static,
-{
-    fn start(&mut self, world: &mut World, _ctx: TaskCtx) {
-        let callback = self.0.take().unwrap();
-        callback(world);
-    }
-}
-
-pub struct Wait {
-    duration: Duration,
-    elapsed: Duration,
-}
-
-impl From<Duration> for Wait {
-    fn from(duration: Duration) -> Self {
-        Self {
-            duration,
-            elapsed: Duration::ZERO,
-        }
-    }
-}
-
-impl Wait {
-    pub fn secs(secs: f32) -> Self {
-        Self::from(Duration::from_secs_f32(secs))
-    }
-    pub fn millis(millis: u64) -> Self {
-        Self::from(Duration::from_millis(millis))
-    }
-}
-
-impl Task for Wait {
-    fn run(&mut self, _world: &mut World, delta: Duration) -> TaskStatus {
-        self.elapsed += delta;
-        if self.elapsed < self.duration {
-            TaskStatus::NotFinished
-        }
-        else {
-            TaskStatus::FinishedRemaining(self.elapsed - self.duration)
-        }
-    }
 }
 
 /// Shareable mutable state between multiple tasks.
