@@ -1,15 +1,12 @@
 mod tasks;
 mod classes;
-mod tree;
 
-use bevy::prelude::*;
-//use bevy_ui_dsl::*;
-
-pub use tasks::*;
 use classes::*;
+use bevy::prelude::*;
+pub use tasks::*;
 use crate::task::{Task, TaskCtx, TaskRunner};
+use crate::tree::*;
 
-use self::tree::TreeBuilder;
 
 pub fn screen_plugin(app: &mut App) {
     app.insert_state(ScreenState::Title);
@@ -31,22 +28,25 @@ pub enum ScreenState {
 pub struct Despawnable;
 
 fn spawn_title_screen(mut commands: Commands, assets: Res<AssetServer>) {
-    // rooti(c_title_root, &assets, &mut commands, Despawnable, |p| {
-    //     text("New Game", (), c_font, p);
-    //     text("Continue", (), c_font, p);
-    //     text("Options", (), c_font, p);
-    //     text("Exit", (), c_font, p);
-    // });
     let t = &mut TreeBuilder::new(&mut commands);
-    
+    node(c_title_root, t); insert(Despawnable, t); begin(t);
+        node(c_menu_items, t); begin(t);
+            text("New Game", c_font, &assets, t);
+            text("Continue", c_font, &assets, t);
+            text("Options", c_font, &assets, t);
+            text("Exit", c_font, &assets, t);
+        end(t);
+        text("Super Exit", c_font, &assets, t);
+    end(t);
 }
 
 fn spawn_options_screen(mut commands: Commands, assets: Res<AssetServer>) {
-    // rooti(c_options_root, &assets, &mut commands, Despawnable, |p| {
-    //     text("Graphics", (), c_font, p);
-    //     text("Sound", (), c_font, p);
-    //     text("Back", (), c_font, p);
-    // });
+    let t = &mut TreeBuilder::new(&mut commands);
+    node(c_title_root, t); insert(Despawnable, t); begin(t);
+        text("Graphics", c_font, &assets, t);
+        text("Sound", c_font, &assets, t);
+        text("Back", c_font, &assets, t);
+    end(t);
 }
 
 fn on_startup(mut commands: Commands) {

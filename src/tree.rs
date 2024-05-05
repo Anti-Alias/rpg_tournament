@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_ui_dsl::Class;
+use bevy_ui_dsl::{AssetClass, Class};
 
 /// Utility that aids in building a entity hierarchy.
 /// Particularly useful for building UIs.
@@ -34,6 +34,10 @@ impl<'a, 'b, 'c> TreeBuilder<'a, 'b, 'c> {
         self
     }
 
+    pub fn write(&mut self, entity: &mut Entity) {
+        *entity = self.last_entity.expect("Cannot 'write' here");
+    }
+
     /// Moves focus to last child spawned.
     pub fn begin(&mut self) -> &mut Self {
         let last_entity = self.last_entity.expect("Cannot 'begin' here");
@@ -57,6 +61,14 @@ impl<'a, 'b, 'c> TreeBuilder<'a, 'b, 'c> {
     }
 }
 
+pub fn insert(bundle: impl Bundle, t: &mut TreeBuilder) {
+    t.insert(bundle);
+}
+
+pub fn write(entity: &mut Entity, t: &mut TreeBuilder) {
+    t.write(entity);
+}
+
 pub fn begin(t: &mut TreeBuilder) {
     t.begin();
 }
@@ -73,11 +85,15 @@ pub fn node(class: impl Class<NodeBundle>, t: &mut TreeBuilder) {
 
 pub fn text(
     value: impl Into<String>,
-    class: impl Class<TextBundle>,
+    class: impl AssetClass<TextStyle>,
+    assets: &AssetServer,
     t: &mut TreeBuilder
 ) {
+    let mut text_style = TextStyle::default();
+    class.apply(&assets, &mut text_style);
+    let section = TextSection::new(value, text_style);
     let mut bundle = TextBundle::default();
-    class.apply(&mut bundle);
+    bundle.text.sections.push(section);
     t.spawn(bundle);
 }
 
@@ -106,5 +122,3 @@ mod test {
 
     }
 }
-
-

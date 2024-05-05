@@ -1,5 +1,6 @@
 mod screen;
 mod task;
+mod tree;
 
 use bevy::prelude::*;
 use screen::screen_plugin;

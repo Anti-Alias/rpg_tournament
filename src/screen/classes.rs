@@ -11,6 +11,15 @@ pub fn c_title_root(b: &mut NodeBundle) {
     b.background_color = Color::rgb(0.5, 0.5, 0.5).into();
 }
 
+pub fn c_menu_items(b: &mut NodeBundle) {
+    let s = &mut b.style;
+    s.display = Display::Flex;
+    s.flex_direction = FlexDirection::Column;
+    s.justify_content = JustifyContent::Center;
+    s.align_items = AlignItems::Center;
+    b.background_color = Color::RED.into();
+}
+
 pub fn c_options_root(b: &mut NodeBundle) {
     let s = &mut b.style;
     s.display = Display::Flex;
