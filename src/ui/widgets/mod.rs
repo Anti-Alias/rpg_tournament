@@ -1,9 +1,9 @@
 mod components;
 pub use components::*;
 
-use crate::dsl::{TreeBuilder, Class, AssetClass};
-use std::time::Duration;
+use crate::dsl::*;
 use bevy::prelude::*;
+use std::time::Duration;
 
 /// Node widget.
 pub fn node(class: impl Class<NodeBundle>, t: &mut TreeBuilder) {
@@ -27,7 +27,7 @@ pub fn text(
     t.spawn(bundle);
 }
 
-/// Advancing text widget.
+/// Text widget where text populates character by character over a period of time.
 pub fn advancing_text(
     value: impl Into<String>,
     char_duration_secs: f32,
@@ -42,17 +42,6 @@ pub fn advancing_text(
     bundle.text.sections = section_pairs;
     let advancer = TextAdvancer::new(Duration::from_secs_f32(char_duration_secs));
     t.spawn((bundle, advancer));
-}
-
-/// Image widget.
-pub fn image(
-    class: impl AssetClass<ImageBundle>,
-    assets: &AssetServer,
-    t: &mut TreeBuilder
-) {
-    let mut bundle = ImageBundle::default();
-    class.apply(assets, &mut bundle);
-    t.spawn(bundle);
 }
 
 /// Nine patch widget.
@@ -74,30 +63,33 @@ pub fn patch(
     t.spawn((bundle, scale_mode));
 }
 
+/// Nine patch widget that produces a button.
+pub fn patch_button(
+    left: f32,
+    right: f32,
+    bottom: f32,
+    top: f32,
+    class: impl AssetClass<ButtonBundle>,
+    assets: &AssetServer,
+    t: &mut TreeBuilder
+) {
+    let scale_mode = ImageScaleMode::Sliced(TextureSlicer {
+        border: BorderRect { left, right, top, bottom },
+        ..default()
+    });
+    let mut bundle = ButtonBundle::default();
+    class.apply(assets, &mut bundle);
+    t.spawn((bundle, scale_mode));
+}
+
 pub fn menu_button(
     txt: impl Into<String>,
     assets: &AssetServer,
     t: &mut TreeBuilder,
 ) {
-
-    // Spawns button
-    let mut bundle = ButtonBundle::default();
-    c_wood(assets, &mut bundle);
-    t.spawn((bundle, nine_patch_scale_mode(7.0, 7.0, 15.0, 15.0)));
-
-    // Spawns text
-    t.begin();
-    text(txt, c_title_font, assets, t);
-    t.end();
-}
-
-
-// ------------------ Utils ------------------
-fn nine_patch_scale_mode(left: f32, right: f32, top: f32, bottom: f32) -> ImageScaleMode {
-    ImageScaleMode::Sliced(TextureSlicer {
-        border: BorderRect { left, right, top, bottom },
-        ..default()
-    })
+    patch_button(7.0, 7.0, 15.0, 15.0, c_wood, assets, t); begin(t);
+        text(txt, c_title_font, assets, t);
+    end(t);
 }
 
 

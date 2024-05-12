@@ -64,10 +64,40 @@ where
 pub struct Quit { pub despawn_host: bool }
 impl Task for Quit {
     fn start(&mut self, world: &mut World, tq: &mut TaskQueue) {
-        tq.clear();
+        tq.clear(world);
         if self.despawn_host {
             world.despawn(tq.host());
         }
+    }
+}
+
+/// Performs an arbitrary task once unconditionally.
+pub struct Finally<F, R> {
+    callback: F,
+    phantom: PhantomData<R>,
+}
+
+impl<F, R> Finally<F, R>
+where
+    F: FnOnce(&mut World) -> R + Send + Sync + 'static,
+    R: Send + Sync + 'static,
+{
+    pub fn new(callback: F) -> Self {
+        Self {
+            callback,
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<F, R> Task for Finally<F, R>
+where
+    F: Fn(&mut World) -> R + Send + Sync + 'static,
+    R: Send + Sync + 'static,
+{
+    fn finally(&self, world: &mut World) {
+        let callback = &self.callback;
+        callback(world);
     }
 }
 
@@ -93,7 +123,7 @@ impl<T: Task> Task for Guard<T> {
         if self.lock.lock() {
             let lock_cb = self.lock.clone();
             self.task.start(world, tq);
-            tq.start(move |_,_| lock_cb.unlock());
+            tq.finally(move |_| lock_cb.unlock());
         }
         else {
             self.failed = true;

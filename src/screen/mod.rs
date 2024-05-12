@@ -18,6 +18,7 @@ pub fn screen_plugin(app: &mut App) {
     app.add_systems(OnExit(ScreenState::Options),   despawn_all);
 }
 
+/// Despawns root entities without a [`Keep`] component.
 fn despawn_all(
     mut commands: Commands,
     despawnables: Query<Entity, (Without<Window>, Without<Keep>, Without<Parent>)>
@@ -42,15 +43,20 @@ pub struct Keep;
 
 pub struct FadeToScreen(pub ScreenState);
 impl Task for FadeToScreen {
-    fn start(&mut self, world: &mut World, tq: &mut TaskQueue) {
+    fn start(&mut self, _world: &mut World, tq: &mut TaskQueue) {
         let mut tq = ExtTaskQueue(tq);
-        let fade_id = world.spawn(Keep).id();
-        tq.insert_host(Keep);
+        let screen_state = self.0.clone();
+        tq.quit_if_state(GameState::Transitioning, true);
         tq.set_state(GameState::Transitioning);
-        tq.fade_in(fade_id, Color::BLACK, 0.25);
-        tq.set_state(self.0.clone());
-        tq.fade_out(fade_id, 0.25);
-        tq.set_state(GameState::Running);
-        tq.quit(true);
+        tq.start(move |world, tq| {
+            let mut tq = ExtTaskQueue(tq);
+            let fade_id = world.spawn(Keep).id();
+            tq.insert_host(Keep);
+            tq.fade_in(fade_id, Color::BLACK, 0.25);
+            tq.set_state(screen_state);
+            tq.fade_out(fade_id, 0.25);
+            tq.set_state(GameState::Running);
+            tq.quit(true);
+        });
     }
 }

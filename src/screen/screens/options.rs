@@ -21,7 +21,7 @@ pub fn setup_options_screen(mut commands: Commands, assets: Res<AssetServer>, mu
 
     commands.entity(graphics).insert(OnPress::call(|_| println!("Graphics pressed!")));
     commands.entity(sound).insert(OnPress::call(|_| println!("Sound pressed!")));
-    commands.entity(back).insert(OnPress::task(true, || FadeToScreen(ScreenState::Title)));
+    commands.entity(back).insert(OnPress::task(false, || FadeToScreen(ScreenState::Title)));
 }
 
 pub fn c_options_root(b: &mut NodeBundle) {

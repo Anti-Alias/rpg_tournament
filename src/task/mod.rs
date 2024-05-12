@@ -1,12 +1,14 @@
+mod common;
+pub mod ext;
+
+pub use common::*;
+
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 use bevy::ecs::system::CommandQueue;
 use bevy::prelude::*;
-mod common;
-pub mod ext;
 use bevy::transform::TransformSystem;
-pub use common::*;
 
 /**
  * Allows for a set arbitrary tasks to be run one after another.
@@ -52,17 +54,9 @@ pub struct TaskRunner {
 }
 
 impl TaskRunner {
-
     /// Creates runner with exactly one task.
     pub fn new(task: impl Task) -> Self {
         Self::from(task)
-    }
-
-    /// Pushes one more task and returns self.
-    pub fn push(self, task: impl Task) -> Self {
-        let task = Box::new(task);
-        self.inner.lock().unwrap().tasks.push_back(task);
-        self
     }
 }
 
@@ -118,6 +112,7 @@ impl TaskRunnerInner {
                 },
                 TaskStatus::Finished => {
                     task.end(world);
+                    task.finally(world);
                     let Some(mut next_task) = self.tasks.pop_front() else { return true };
                     let tq = &mut TaskQueue { host, insert_index: 0, tasks: &mut self.tasks, command_queue };
                     next_task.start(world, tq);
@@ -127,6 +122,7 @@ impl TaskRunnerInner {
                 TaskStatus::FinishedRemaining(delta_remaining) => {
                     delta = delta_remaining;
                     task.end(world);
+                    task.finally(world);
                     let Some(mut next_task) = self.tasks.pop_front() else { return true };
                     let tq = &mut TaskQueue { host, insert_index: 0, tasks: &mut self.tasks, command_queue };
                     next_task.start(world, tq);
@@ -173,6 +169,15 @@ impl<'a> TaskQueue<'a> {
         self.push(Run::new(callback));
     }
 
+    /// Helper method that pushes a [Finally] task.
+    pub fn finally<F, R>(&mut self, callback: F)
+    where
+        F: Fn(&mut World) -> R + Send + Sync + 'static,
+        R: Send + Sync + 'static,
+    {
+        self.push(Finally::new(callback));
+    }
+
     /// Pushes a task that waits.
     pub fn wait(&mut self, duration: Duration) {
         let mut elapsed = Duration::ZERO;
@@ -193,7 +198,7 @@ impl<'a> TaskQueue<'a> {
     }
 
     /// Pushes a task that waits.
-    pub fn wait_ms(&mut self, millis: u64) {
+    pub fn wait_millis(&mut self, millis: u64) {
         self.wait(Duration::from_millis(millis))
     }
 
@@ -206,23 +211,20 @@ impl<'a> TaskQueue<'a> {
     }
 
     /// Pushes a task that fires an event.
-    pub fn fire(&mut self, event: impl Event) {
+    pub fn send_event(&mut self, event: impl Event) {
         self.start(move |world, _| {
             world.send_event(event);
         });
     }
 
     /// Pushes a task that despawns an entity.
-    pub fn despawn(&mut self, entity: Entity, recursive: bool) {
-        self.start(move |world, _| {
-            let e = world.entity_mut(entity);
-            if recursive {
-                e.despawn_recursive();
-            }
-            else {
-                e.despawn();
-            }
-        });
+    pub fn despawn(&mut self, entity: Entity, recursive: bool, unconditional: bool) {
+        match (recursive, unconditional) {
+            (true, true)    => self.finally(move |w| w.entity_mut(entity).despawn_recursive()),
+            (true, false)   => self.start(move |w,_| w.entity_mut(entity).despawn_recursive()),
+            (false, true)   => self.finally(move |w| w.entity_mut(entity).despawn()),
+            (false, false)  => self.start(move |w,_| w.entity_mut(entity).despawn()),
+        }
     }
 
     /// Pushes a task that clears the task queue.
@@ -230,28 +232,15 @@ impl<'a> TaskQueue<'a> {
         self.push(Quit { despawn_host } )
     }
 
-    /// Pushes a task that waits exactly one frame / tick.
-    /// Useful if the output of a previous task is delayed by a frame / tick.
-    pub fn skip(&mut self) {
-        let mut skipped = false;
-        self.run(move |_, _| {
-            if !skipped {
-                skipped = true;
-                TaskStatus::NotFinished
-            }
-            else {
-                TaskStatus::Finished
-            }
-        });
-    }
-
     /// Entity that contains the [TaskRunner].
     pub fn host(&self) -> Entity { self.host }
 
     /// Clears all tasks in the task queue.
     /// Does not push a task.
-    pub fn clear(&mut self) {
-        self.tasks.clear();
+    pub fn clear(&mut self, world: &mut World) {
+        while let Some(task) = self.tasks.pop_front() {
+            task.finally(world);
+        }
         self.insert_index = 0;
     }
 }
@@ -274,6 +263,10 @@ pub trait Task: Send + Sync + 'static {
     /// Tears down the task. Invoked immediately after run() finishes.
     #[allow(unused)]
     fn end(&self, world: &mut World) {}
+    /// Runs unconditionally after end().
+    /// Useful for ensuring resources are cleaned up if the [`TaskRunner`] abruply quits.
+    #[allow(unused)]
+    fn finally(&self, world: &mut World) {}
 }
 
 

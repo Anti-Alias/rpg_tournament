@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use std::time::Duration;
 
-
+/// System that advances text on a [`Text`] node.
 pub fn advance_text(
     mut text_entities: Query<(&mut TextAdvancer, &mut Text)>,
     time: Res<Time>,
@@ -41,6 +41,7 @@ pub struct TextAdvancer {
 }
 
 impl TextAdvancer {
+    
     pub fn new(char_duration: Duration) -> Self {
         Self {
             char_timer: Timer::new(char_duration, TimerMode::Repeating),
@@ -48,7 +49,9 @@ impl TextAdvancer {
         }
     }
 
-    pub fn finished(&self) -> bool { self.finished }
+    pub fn finished(&self) -> bool {
+        self.finished
+    }
 }
 
 fn advance_section_pairs(pairs: &mut [TextSection]) -> bool {

@@ -7,9 +7,7 @@ use super::TaskQueue;
 /// Wraps a [`TaskQueue`] to extend its functionality.
 #[derive(Deref, DerefMut)]
 pub struct ExtTaskQueue<'a, 'b>(pub &'a mut TaskQueue<'b>);
-
 impl<'a, 'b> ExtTaskQueue<'a, 'b> {
-
 
     /// Spawns a dialog entity.
     pub fn spawn_dialog(&mut self, message: impl Into<String>, dialog_id: Entity, text_id: Entity) {

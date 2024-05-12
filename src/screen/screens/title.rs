@@ -23,7 +23,7 @@ pub fn setup_title_screen(mut commands: Commands, assets: Res<AssetServer>, mut 
 
     commands.entity(new_game).insert(OnPress::call(|_| println!("New game pressed!")));
     commands.entity(cont).insert(OnPress::task(true, || ShowDialog));
-    commands.entity(options).insert(OnPress::task(true, || FadeToScreen(ScreenState::Options)));
+    commands.entity(options).insert(OnPress::task(false, || FadeToScreen(ScreenState::Options)));
     commands.entity(exit).insert(OnPress::call(|_| println!("Exit pressed!")));
 }
 
@@ -35,14 +35,14 @@ impl Task for ShowDialog {
         let text = world.spawn_empty().id();
         tq.spawn_dialog("Hello, world!", dialog, text);
         tq.wait_on_text(text);
-        tq.wait_secs(0.5);
+        tq.wait_millis(500);
         tq.set_dialog_message("How are you on this fine day?", text);
         tq.wait_on_text(text);
-        tq.wait_secs(0.5);
+        tq.wait_millis(500);
         tq.set_dialog_message("I'm fine, but you already knew that, didn't you?", text);
         tq.wait_on_text(text);
-        tq.wait_secs(0.5);
-        tq.despawn(dialog, true);
+        tq.wait_millis(500);
+        tq.despawn(dialog, true, true);
     }
 }
 
