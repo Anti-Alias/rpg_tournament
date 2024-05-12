@@ -1,33 +1,29 @@
 use std::collections::VecDeque;
-use std::marker::PhantomData;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
-use bevy::ecs::schedule::ScheduleLabel;
+use bevy::ecs::system::CommandQueue;
 use bevy::prelude::*;
-
 mod common;
+pub mod ext;
+use bevy::transform::TransformSystem;
 pub use common::*;
 
 /**
  * Allows for a set arbitrary tasks to be run one after another.
  */
-pub struct TaskPlugin<S> { schedule: S }
-impl <S: ScheduleLabel> TaskPlugin<S> {
-    pub fn new(schedule: S) -> Self {
-        Self { schedule }
-    }
-}
+pub struct TaskPlugin;
 
 
-impl<S: ScheduleLabel + Clone> Plugin for TaskPlugin<S> {
+impl Plugin for TaskPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(self.schedule.clone(), run_task_runners::<S>);
+        app.add_systems(PostUpdate, run_task_runners.before(TransformSystem::TransformPropagate));
     }
 }
 
-fn run_task_runners<S: ScheduleLabel>(
+fn run_task_runners(
     world: &mut World,
-    runners: &mut QueryState<(Entity, &mut TaskRunner<S>)>
+    runners: &mut QueryState<(Entity, &mut TaskRunner)>,
+    mut command_queue: Local<CommandQueue>,
 ) {
     let delta = world.resource_mut::<Time>().delta();
     let runners: Vec<_> = runners
@@ -37,13 +33,13 @@ fn run_task_runners<S: ScheduleLabel>(
     for (host, runner_inner) in runners {
         let mut runner_inner = runner_inner.lock().unwrap();
         if !runner_inner.started {
-            runner_inner.start(world, host);
+            runner_inner.start(world, &mut command_queue, host);
             runner_inner.started = true;
         }
-        let finished = runner_inner.run(world, host, delta);
+        let finished = runner_inner.run(world, &mut command_queue, host, delta);
         if finished {
             let Some(mut host_ref) = world.get_entity_mut(host) else { continue };  // Command may despawn the host.
-            host_ref.remove::<TaskRunner<S>>();
+            host_ref.remove::<TaskRunner>();
         }
     }
 }
@@ -51,13 +47,27 @@ fn run_task_runners<S: ScheduleLabel>(
 
 /// Component that runs a sequence of tasks one after another.
 #[derive(Component)]
-pub struct TaskRunner<S: ScheduleLabel = Update> {
+pub struct TaskRunner {
     inner: Arc<Mutex<TaskRunnerInner>>,
-    phantom: PhantomData<S>,
 }
-impl<S: ScheduleLabel> TaskRunner<S> {
 
+impl TaskRunner {
+
+    /// Creates runner with exactly one task.
     pub fn new(task: impl Task) -> Self {
+        Self::from(task)
+    }
+
+    /// Pushes one more task and returns self.
+    pub fn push(self, task: impl Task) -> Self {
+        let task = Box::new(task);
+        self.inner.lock().unwrap().tasks.push_back(task);
+        self
+    }
+}
+
+impl<T: Task> From<T> for TaskRunner {
+    fn from(task: T) -> Self {
         let mut tasks: VecDeque<Box<dyn Task>> = VecDeque::new();
         tasks.push_front(Box::new(task));
         Self {
@@ -65,20 +75,20 @@ impl<S: ScheduleLabel> TaskRunner<S> {
                 started: false,
                 tasks,
             })),
-            phantom: PhantomData,
         }
     }
 }
 
-impl TaskRunner<Update> {
-    pub fn update(task: impl Task) -> Self {
-        Self::new(task)
-    }
-}
-
-impl TaskRunner<FixedUpdate> {
-    pub fn fixed_update(task: impl Task) -> Self {
-        Self::new(task)
+impl From<Box<dyn Task>> for TaskRunner {
+    fn from(task: Box<dyn Task>) -> Self {
+        let mut tasks: VecDeque<Box<dyn Task>> = VecDeque::new();
+        tasks.push_front(task);
+        Self {
+            inner: Arc::new(Mutex::new(TaskRunnerInner {
+                started: false,
+                tasks,
+            })),
+        }
     }
 }
 
@@ -89,14 +99,15 @@ struct TaskRunnerInner {
 
 impl TaskRunnerInner {
 
-    fn start(&mut self, world: &mut World, host: Entity,) {
+    fn start(&mut self, world: &mut World, command_queue: &mut CommandQueue, host: Entity,) {
         let mut task = self.tasks.pop_front().unwrap();
-        let ctx = TaskCtx { host, insert_index: 0, tasks: &mut self.tasks };
-        task.start(world, ctx);
+        let tq = &mut TaskQueue { host, insert_index: 0, tasks: &mut self.tasks, command_queue };
+        task.start(world, tq);
+        command_queue.apply(world);
         self.tasks.push_front(task);
     }
 
-    fn run(&mut self, world: &mut World, host: Entity, mut delta: Duration) -> bool {
+    fn run(&mut self, world: &mut World, command_queue: &mut CommandQueue, host: Entity, mut delta: Duration) -> bool {
         loop {
             let mut task = self.tasks.pop_front().unwrap();
             let status = task.run(world, delta);
@@ -108,16 +119,18 @@ impl TaskRunnerInner {
                 TaskStatus::Finished => {
                     task.end(world);
                     let Some(mut next_task) = self.tasks.pop_front() else { return true };
-                    let ctx = TaskCtx { host, insert_index: 0, tasks: &mut self.tasks };
-                    next_task.start(world, ctx);
+                    let tq = &mut TaskQueue { host, insert_index: 0, tasks: &mut self.tasks, command_queue };
+                    next_task.start(world, tq);
+                    command_queue.apply(world);
                     self.tasks.push_front(next_task);
                 },
                 TaskStatus::FinishedRemaining(delta_remaining) => {
                     delta = delta_remaining;
                     task.end(world);
                     let Some(mut next_task) = self.tasks.pop_front() else { return true };
-                    let ctx = TaskCtx { host, insert_index: 0, tasks: &mut self.tasks };
-                    next_task.start(world, ctx);
+                    let tq = &mut TaskQueue { host, insert_index: 0, tasks: &mut self.tasks, command_queue };
+                    next_task.start(world, tq);
+                    command_queue.apply(world);
                     self.tasks.push_front(next_task);
                 }
             }
@@ -125,13 +138,15 @@ impl TaskRunnerInner {
     }
 }
 
-pub struct TaskCtx<'a> {
+/// Queue of tasks that will be run in order of submission.
+pub struct TaskQueue<'a> {
     host: Entity,
     insert_index: usize,
     tasks: &'a mut VecDeque<Box<dyn Task>>,
+    pub command_queue: &'a mut CommandQueue,
 }
 
-impl<'a> TaskCtx<'a> {
+impl<'a> TaskQueue<'a> {
 
     /// Adds a task to the queue immediately after the current task.
     /// Subsequent invocations will be placed after the last task added.
@@ -141,64 +156,122 @@ impl<'a> TaskCtx<'a> {
         self.insert_index += 1;
     }
 
-    /// Helper method that pushes a [Do] task.
-    pub fn then<F>(&mut self, callback: F)
+    /// Helper method that pushes a [Start] task.
+    pub fn start<F, R>(&mut self, callback: F)
     where
-        F: FnOnce(&mut World) + Send + Sync + 'static
+        F: FnOnce(&mut World, &mut TaskQueue) -> R + Send + Sync + 'static,
+        R: Send + Sync + 'static,
     {
-        self.push(Do::new(callback));
+        self.push(Start::new(callback));
     }
 
-    /// Helper method that pushes a [Wait] task.
-    pub fn wait(&mut self, secs: f32) {
-        self.push(Wait::secs(secs));
+    /// Helper method that pushes a [Run] task.
+    pub fn run<F>(&mut self, callback: F)
+    where
+        F: FnMut(&mut World, Duration) -> TaskStatus + Send + Sync + 'static,
+    {
+        self.push(Run::new(callback));
     }
 
-    /// Helper method that pushes a [Quit] or [DespawnHost] task.
+    /// Pushes a task that waits.
+    pub fn wait(&mut self, duration: Duration) {
+        let mut elapsed = Duration::ZERO;
+        self.run(move |_, delta| {
+            elapsed += delta;
+            if elapsed > duration {
+                TaskStatus::FinishedRemaining(elapsed - duration)
+            }
+            else {
+                TaskStatus::NotFinished
+            }
+        });
+    }
+
+    /// Pushes a task that waits.
+    pub fn wait_secs(&mut self, secs: f32) {
+        self.wait(Duration::from_secs_f32(secs))
+    }
+
+    /// Pushes a task that waits.
+    pub fn wait_ms(&mut self, millis: u64) {
+        self.wait(Duration::from_millis(millis))
+    }
+
+    /// Pushes a task that sets a state.
+    pub fn set_state<S: States>(&mut self, state: S) {
+        self.start(|world, _| {
+            let mut next_state = world.resource_mut::<NextState<S>>();
+            next_state.set(state);
+        });
+    }
+
+    /// Pushes a task that fires an event.
+    pub fn fire(&mut self, event: impl Event) {
+        self.start(move |world, _| {
+            world.send_event(event);
+        });
+    }
+
+    /// Pushes a task that despawns an entity.
+    pub fn despawn(&mut self, entity: Entity, recursive: bool) {
+        self.start(move |world, _| {
+            let e = world.entity_mut(entity);
+            if recursive {
+                e.despawn_recursive();
+            }
+            else {
+                e.despawn();
+            }
+        });
+    }
+
+    /// Pushes a task that clears the task queue.
     pub fn quit(&mut self, despawn_host: bool) {
-        if despawn_host {
-            self.push(DespawnHost);
-        }
-        else {
-            self.push(Quit);
-        }
+        self.push(Quit { despawn_host } )
+    }
+
+    /// Pushes a task that waits exactly one frame / tick.
+    /// Useful if the output of a previous task is delayed by a frame / tick.
+    pub fn skip(&mut self) {
+        let mut skipped = false;
+        self.run(move |_, _| {
+            if !skipped {
+                skipped = true;
+                TaskStatus::NotFinished
+            }
+            else {
+                TaskStatus::Finished
+            }
+        });
     }
 
     /// Entity that contains the [TaskRunner].
     pub fn host(&self) -> Entity { self.host }
 
     /// Clears all tasks in the task queue.
+    /// Does not push a task.
     pub fn clear(&mut self) {
         self.tasks.clear();
         self.insert_index = 0;
     }
 }
 
-pub struct RunCtx {
-    delta_ratio: f32
-}
-
-impl RunCtx {
-    pub fn delta(&self, world: &mut World) -> Duration {
-        world
-            .resource::<Time>()
-            .delta()
-            .mul_f32(self.delta_ratio)
-    }
-}
-
-
 /// An single task that executes some action.
 /// A task may run for a single tick / frame, or multiple ticks / frames.
 /// It may even run during the same tick as another task in the same [TaskRunner].
 pub trait Task: Send + Sync + 'static {
     /// Sets up the task. Invoked a single time right before 1 or more invocations of run().
+    /// Typically, users implement this if either:
+    /// 1) Their task needs setup logic.
+    /// 2) Their task is noting more than an "aggretate task" which pushes more tasks into the queue.
     #[allow(unused)]
-    fn start(&mut self, world: &mut World, ctx: TaskCtx) {}
-    /// Invoked at least once after start().
+    fn start(&mut self, world: &mut World, tq: &mut TaskQueue) {}
+    /// Invoked immediately after start.
+    /// Invoked as long as it returns [TaskStatus::NotFinished].
+    /// Returns [TaskStatus::Finished] by default.
     #[allow(unused)]
     fn run(&mut self, world: &mut World, delta: Duration) -> TaskStatus { TaskStatus::Finished }
-    /// Tears down the task. Invoked immediately after run() returns true.
+    /// Tears down the task. Invoked immediately after run() finishes.
     #[allow(unused)]
     fn end(&self, world: &mut World) {}
 }
@@ -206,13 +279,27 @@ pub trait Task: Send + Sync + 'static {
 
 #[derive(Copy, Clone, Eq, PartialEq, Default, Debug)]
 pub enum TaskStatus {
+    /// Task is not finished. run() will be invoked again next frame.
     #[default]
     NotFinished,
+    /// Task is finished. Next task, if any, will start(), then run(). Delta assumed to be [Duration::ZERO].
     Finished,
+    /// Task is finished. Next task, if any, will start(), then run(), using the delta returned.
     FinishedRemaining(Duration),
 }
 
-/// Shareable mutable state between multiple tasks.
+impl From<bool> for TaskStatus {
+    fn from(value: bool) -> Self {
+        match value {
+            true => Self::Finished,
+            false => Self::NotFinished,
+        }
+    }
+}
+
+/// Shareable mutable state across tasks.
+/// Useful if the output of one task needs to be used in a later one.
+/// For instance, a dialog tree.
 #[derive(Clone, Default, Debug)]
 pub struct Shared<T>(Arc<Mutex<T>>);
 impl<T> Shared<T> {
@@ -237,5 +324,37 @@ impl<T: Clone> Shared<T> {
     /// Gets a cloned copy of the state.
     pub fn get(&self) -> T {
         self.0.lock().unwrap().clone()
+    }
+}
+
+/// Used to block tasks from running.
+#[derive(Clone, Default, Debug)]
+pub struct TaskLock(Shared<bool>);
+impl TaskLock {
+
+    pub fn new() -> Self {
+        Self(Shared::new(false))
+    }
+
+    pub fn is_locked(&self) -> bool {
+        self.0.get()
+    }
+
+    /// Acquires lock.
+    /// Returns true if successful.
+    pub fn lock(&self) -> bool {
+        let is_locked: &mut bool = &mut self.0.lock();
+        if *is_locked { return false };
+        *is_locked = true;
+        true
+    }
+
+    /// Releases lock.
+    /// Returns true if successful.
+    pub fn unlock(&self) -> bool {
+        let is_locked: &mut bool = &mut self.0.lock();
+        if !*is_locked { return false };
+        *is_locked = false;
+        true
     }
 }

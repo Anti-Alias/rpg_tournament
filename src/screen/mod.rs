@@ -1,65 +1,56 @@
 mod tasks;
-mod classes;
+mod screens;
 
-use classes::*;
-use bevy::prelude::*;
 pub use tasks::*;
-use crate::task::{Task, TaskCtx, TaskRunner};
-use crate::tree::*;
+
+use crate::task::ext::ExtTaskQueue;
+use crate::task::{Task, TaskQueue};
+use crate::GameState;
+use bevy::prelude::*;
+
 
 
 pub fn screen_plugin(app: &mut App) {
     app.insert_state(ScreenState::Title);
-    app.add_systems(OnEnter(ScreenState::Title), spawn_title_screen);
-    app.add_systems(OnEnter(ScreenState::Options), spawn_options_screen);
-    app.add_systems(Startup, on_startup);
+    app.add_systems(OnEnter(ScreenState::Title),    screens::title::setup_title_screen);
+    app.add_systems(OnEnter(ScreenState::Options),  screens::options::setup_options_screen);
+    app.add_systems(OnExit(ScreenState::Title),     despawn_all);
+    app.add_systems(OnExit(ScreenState::Options),   despawn_all);
 }
+
+fn despawn_all(
+    mut commands: Commands,
+    despawnables: Query<Entity, (Without<Window>, Without<Keep>, Without<Parent>)>
+) {
+    for entity in &despawnables {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
 
 /// State that controls what screen is being displayed.
 #[derive(States, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ScreenState {
     Title,
     Options,
-    Map { map_file: String, }
+    //Map { map_file: String, }
 }
 
-/// Marks an entity as despawnable during screen transitions.
-#[derive(Component, Copy, Clone, Eq, PartialEq, Default, Debug)]
-pub struct Despawnable;
+/// Keeps this entity across screen transitions.
+#[derive(Component)]
+pub struct Keep;
 
-fn spawn_title_screen(mut commands: Commands, assets: Res<AssetServer>) {
-    let t = &mut TreeBuilder::new(&mut commands);
-    node(c_title_root, t); insert(Despawnable, t); begin(t);
-        node(c_menu_items, t); begin(t);
-            text("New Game", c_font, &assets, t);
-            text("Continue", c_font, &assets, t);
-            text("Options", c_font, &assets, t);
-            text("Exit", c_font, &assets, t);
-        end(t);
-        text("Super Exit", c_font, &assets, t);
-    end(t);
-}
-
-fn spawn_options_screen(mut commands: Commands, assets: Res<AssetServer>) {
-    let t = &mut TreeBuilder::new(&mut commands);
-    node(c_title_root, t); insert(Despawnable, t); begin(t);
-        text("Graphics", c_font, &assets, t);
-        text("Sound", c_font, &assets, t);
-        text("Back", c_font, &assets, t);
-    end(t);
-}
-
-fn on_startup(mut commands: Commands) {
-    commands.spawn(TaskRunner::update(MyTask));
-}
-
-struct MyTask;
-impl Task for MyTask {
-    fn start(&mut self, _world: &mut World, mut ctx: TaskCtx) {
-        ctx.wait(1.5);
-        ctx.push(FadeToScreen::new(ScreenState::Options, 1.5, 1.5));
-        ctx.wait(1.5);
-        ctx.push(FadeToScreen::new(ScreenState::Title, 1.5, 1.5));
-        ctx.quit(true);
+pub struct FadeToScreen(pub ScreenState);
+impl Task for FadeToScreen {
+    fn start(&mut self, world: &mut World, tq: &mut TaskQueue) {
+        let mut tq = ExtTaskQueue(tq);
+        let fade_id = world.spawn(Keep).id();
+        tq.insert_host(Keep);
+        tq.set_state(GameState::Transitioning);
+        tq.fade_in(fade_id, Color::BLACK, 0.25);
+        tq.set_state(self.0.clone());
+        tq.fade_out(fade_id, 0.25);
+        tq.set_state(GameState::Running);
+        tq.quit(true);
     }
 }

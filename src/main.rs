@@ -1,25 +1,37 @@
 mod screen;
 mod task;
-mod tree;
+mod ui;
+mod dsl;
 
-use bevy::prelude::*;
 use screen::screen_plugin;
 use task::TaskPlugin;
+use ui::ui_plugin;
 
+use bevy::prelude::*;
+use bevy::render::texture::ImageSamplerDescriptor;
 
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins,
-            TaskPlugin::new(Update),
+            DefaultPlugins.set(ImagePlugin { default_sampler: ImageSamplerDescriptor::nearest() }),
+            TaskPlugin,
             screen_plugin,
+            ui_plugin,
+            game_plugin,
         ))
-        .add_systems(Startup, startup)
         .run();
 }
 
 
-fn startup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+fn game_plugin(app: &mut App) {
+    app.init_state::<GameState>();
 }
 
+#[derive(States, Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
+pub enum GameState {
+    /// Regular game state.
+    #[default]
+    Running,
+    /// Transitioning between screens.
+    Transitioning,
+}
