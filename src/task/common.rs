@@ -137,4 +137,7 @@ impl<T: Task> Task for Guard<T> {
         if self.failed { return }
         self.task.end(world);
     }
+    fn finally(&self, world: &mut World) {
+        self.task.finally(world);
+    }
 }
