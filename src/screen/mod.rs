@@ -13,27 +13,27 @@ pub fn screen_plugin(app: &mut App) {
     app.insert_state(ScreenState::Title);
     app.add_systems(OnEnter(ScreenState::Title),    screens::title::setup_title_screen);
     app.add_systems(OnEnter(ScreenState::Options),  screens::options::setup_options_screen);
-    // app.add_systems(OnExit(ScreenState::Title),     despawn_all);
-    // app.add_systems(OnExit(ScreenState::Options),   despawn_all);
+    app.add_systems(OnExit(ScreenState::Title),     despawn_all);
+    app.add_systems(OnExit(ScreenState::Options),   despawn_all);
 }
 
-// /// Despawns all entities that don't have a [`Keep`], and don't have an ancestor with a [`Keep`].
-// fn despawn_all(
-//     world: &mut World,
-//     despawnables: &mut QueryState<Entity, (Without<Window>, Without<Keep>, Without<Parent>)>
-// ) {
-//     let mut to_despawn = vec![];
-//     for entity in despawnables.iter(world) {
-//         to_despawn.push(entity);
-//         collect_children_recursive(world, entity, &mut to_despawn);
-//     }
-//     for entity in to_despawn {
-//         if let Some(mut runner) = world.entity_mut(entity).take::<TaskRunner>() {
-//             runner.clear(world);
-//         }
-//         world.despawn(entity);
-//     }
-// }
+/// Despawns all entities that don't have a [`Keep`], and don't have an ancestor with a [`Keep`].
+fn despawn_all(
+    world: &mut World,
+    despawnables: &mut QueryState<Entity, (Without<Window>, Without<Keep>, Without<Parent>)>
+) {
+    let mut to_despawn = vec![];
+    for entity in despawnables.iter(world) {
+        to_despawn.push(entity);
+        collect_children_recursive(world, entity, &mut to_despawn);
+    }
+    for entity in to_despawn {
+        if let Some(mut runner) = world.entity_mut(entity).take::<TaskRunner>() {
+            runner.clear(world);
+        }
+        world.despawn(entity);
+    }
+}
 
 
 /// State that controls what screen is being displayed.
