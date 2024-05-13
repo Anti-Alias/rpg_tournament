@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.13"
+bevy = { git="https://github.com/bevyengine/bevy.git", tag="v0.13.2" }
 
 [dev-dependencies]
-bevy = { version = "0.13", features = ["dynamic_linking"] }
+bevy = { git="https://github.com/bevyengine/bevy.git", tag="v0.13.2", features = ["dynamic_linking"] }
 
 [profile.dev]
 opt-level = 1
