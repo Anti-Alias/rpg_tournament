@@ -21,9 +21,14 @@ pub fn setup_title_screen(mut commands: Commands, assets: Res<AssetServer>, mut 
         menu_button("Exit", &assets, t);     exit = last(t);
     end(t);
 
+    let lock1 = TaskLock::new();
+    let lock2 = lock1.clone();
+    let dialog_task = move || Guard::new(ShowDialog, lock1.clone());
+    let fade_task = move || Guard::new(FadeToScreen(ScreenState::Options), lock2.clone());
+
+    commands.entity(cont).insert(OnPress::task(dialog_task));
+    commands.entity(options).insert(OnPress::task(fade_task));
     commands.entity(new_game).insert(OnPress::call(|_| println!("New game pressed!")));
-    commands.entity(cont).insert(OnPress::task(true, || ShowDialog));
-    commands.entity(options).insert(OnPress::task(false, || FadeToScreen(ScreenState::Options)));
     commands.entity(exit).insert(OnPress::call(|_| println!("Exit pressed!")));
 }
 
@@ -31,8 +36,8 @@ pub struct ShowDialog;
 impl Task for ShowDialog {
     fn start(&mut self, world: &mut World, tq: &mut TaskQueue) {
         let mut tq = ExtTaskQueue(tq);
-        let dialog = world.spawn_empty().id();
-        let text = world.spawn_empty().id();
+        let dialog: Entity = world.spawn_empty().id();
+        let text: Entity = world.spawn_empty().id();
         tq.spawn_dialog("Hello, world!", dialog, text);
         tq.wait_on_text(text);
         tq.wait_millis(500);
@@ -42,8 +47,9 @@ impl Task for ShowDialog {
         tq.set_dialog_message("I'm fine, but you already knew that, didn't you?", text);
         tq.wait_on_text(text);
         tq.wait_millis(500);
+        tq.despawn(text, true, true);
         tq.despawn(dialog, true, true);
-        tq.finally(|_| println!("Ran finally block!!!"));
+        tq.finally(|w| println!("Finally!!!"));
     }
 }
 

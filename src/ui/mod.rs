@@ -55,29 +55,15 @@ impl OnPress {
     }
 
     /// Spawns an entity with a task created by the producer.
-    pub fn task<P, T>(guard: bool, producer: P) -> Self
+    pub fn task<P, T>(producer: P) -> Self
     where
         P: Fn() -> T + Send + Sync + 'static,
         T: Task,
     {
-        if guard {
-            let lock = TaskLock::new();
-            let new_producer = move || {
-                let task = producer();
-                let lock = lock.clone();
-                let task = Guard::new(task, lock);
-                task
-            };
-            Self::call(move |world| {
-                let task = new_producer();
-                let runner = TaskRunner::new(task);
-                world.spawn(runner);
-            })
-        }
-        else {
-            Self::call(move |world| {
-                world.spawn(TaskRunner::from(producer()));
-            })
-        }
+        Self::call(move |world| {
+            let mut runner = TaskRunner::from(producer());
+            runner.push(Quit { despawn_host: true });
+            world.spawn(runner);
+        })
     }
 }

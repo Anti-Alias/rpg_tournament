@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use std::time::Duration;
 use bevy::prelude::*;
-use super::{Task, TaskLock, TaskQueue, TaskStatus};
+use super::{despawn_recursive, Task, TaskLock, TaskQueue, TaskStatus};
 
 /// Performs an arbitrary task once.
 /// Useful for creating inline tasks that execute once then immediately finish.
@@ -66,7 +66,7 @@ impl Task for Quit {
     fn start(&mut self, world: &mut World, tq: &mut TaskQueue) {
         tq.clear(world);
         if self.despawn_host {
-            world.despawn(tq.host());
+            despawn_recursive(world, tq.host());
         }
     }
 }
@@ -79,7 +79,7 @@ pub struct Finally<F, R> {
 
 impl<F, R> Finally<F, R>
 where
-    F: FnOnce(&mut World) -> R + Send + Sync + 'static,
+    F: Fn(&mut World) -> R + Send + Sync + 'static,
     R: Send + Sync + 'static,
 {
     pub fn new(callback: F) -> Self {

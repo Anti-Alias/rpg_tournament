@@ -1,11 +1,10 @@
 mod tasks;
 mod screens;
 
-use bevy::ecs::system::EntityCommand;
 pub use tasks::*;
 
 use crate::task::ext::ExtTaskQueue;
-use crate::task::{DespawnRecursive, Task, TaskQueue, TaskRunner};
+use crate::task::{collect_children_recursive, Task, TaskQueue, TaskRunner};
 use crate::GameState;
 use bevy::prelude::*;
 
@@ -20,11 +19,19 @@ pub fn screen_plugin(app: &mut App) {
 
 /// Despawns all entities that don't have a [`Keep`], and don't have an ancestor with a [`Keep`].
 fn despawn_all(
-    mut commands: Commands,
-    despawnables: Query<Entity, (Without<Window>, Without<Keep>, Without<Parent>)>
+    world: &mut World,
+    despawnables: &mut QueryState<Entity, (Without<Window>, Without<Keep>, Without<Parent>)>
 ) {
-    for entity in &despawnables {
-        commands.entity(entity).add(DespawnRecursive);
+    let mut to_despawn = vec![];
+    for entity in despawnables.iter(world) {
+        to_despawn.push(entity);
+        collect_children_recursive(world, entity, &mut to_despawn);
+    }
+    for entity in to_despawn {
+        if let Some(mut runner) = world.entity_mut(entity).take::<TaskRunner>() {
+            runner.clear(world);
+        }
+        world.despawn(entity);
     }
 }
 

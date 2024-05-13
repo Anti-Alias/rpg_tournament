@@ -9,7 +9,6 @@ use std::time::Duration;
 use bevy::ecs::system::{CommandQueue, EntityCommand};
 use bevy::prelude::*;
 use bevy::transform::TransformSystem;
-
 use crate::screen::Keep;
 
 /**
@@ -62,6 +61,11 @@ impl TaskRunner {
 
     pub fn clear(&mut self, world: &mut World) {
         self.inner.lock().unwrap().clear(world);
+    }
+
+    pub fn push(&mut self, task: impl Task) {
+        let task = Box::new(task);
+        self.inner.lock().unwrap().tasks.push_back(task);
     }
 }
 
@@ -226,7 +230,9 @@ impl<'a> TaskQueue<'a> {
         });
     }
 
-    /// Pushes a task that despawns an entity.
+    /// Pushes a task that despawns an entity if it exists.
+    /// If recursive, descendents will also despawn.
+    /// If unconditional, will despawn even if [`TaskRunner`] stops ubruptly.
     pub fn despawn(&mut self, entity: Entity, recursive: bool, unconditional: bool) {
         match (recursive, unconditional) {
             (true, true) => self.finally(move |w| despawn_recursive(w, entity)),
@@ -373,19 +379,21 @@ impl EntityCommand for DespawnRecursive {
     }
 }
 
-pub fn despawn_recursive(world: &mut World, entity: Entity) {
+
+fn despawn_recursive(world: &mut World, entity: Entity) {
+    if !world.entities().contains(entity) { return };
     let mut to_despawn = Vec::new();
-    despawn_children_recursive(world, entity, &mut to_despawn);
+    collect_children_recursive(world, entity, &mut to_despawn);
     for e in to_despawn { despawn(world, e) }
-    despawn(world, entity);
+    world.despawn(entity);
 }
 
-fn despawn_children_recursive(world: &World, entity: Entity, to_despawn: &mut Vec<Entity>) {
+pub fn collect_children_recursive(world: &World, entity: Entity, to_despawn: &mut Vec<Entity>) {
     if let Some(children) = world.get::<Children>(entity) {
         for e in children.into_iter().copied() {
             let Some(e) = world.get_entity(e) else { continue };
             if e.contains::<Keep>() { continue }
-            despawn_children_recursive(world, e.id(), to_despawn);
+            collect_children_recursive(world, e.id(), to_despawn);
             to_despawn.push(e.id());
         }
     }
