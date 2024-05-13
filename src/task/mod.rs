@@ -6,15 +6,16 @@ pub use common::*;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
-use bevy::ecs::system::CommandQueue;
+use bevy::ecs::system::{CommandQueue, EntityCommand};
 use bevy::prelude::*;
 use bevy::transform::TransformSystem;
+
+use crate::screen::Keep;
 
 /**
  * Allows for a set arbitrary tasks to be run one after another.
  */
 pub struct TaskPlugin;
-
 
 impl Plugin for TaskPlugin {
     fn build(&self, app: &mut App) {
@@ -57,6 +58,10 @@ impl TaskRunner {
     /// Creates runner with exactly one task.
     pub fn new(task: impl Task) -> Self {
         Self::from(task)
+    }
+
+    pub fn clear(&mut self, world: &mut World) {
+        self.inner.lock().unwrap().clear(world);
     }
 }
 
@@ -131,6 +136,10 @@ impl TaskRunnerInner {
                 }
             }
         };
+    }
+
+    pub fn clear(&mut self, world: &mut World) {
+        clear_tasks(&mut self.tasks, world);
     }
 }
 
@@ -220,10 +229,10 @@ impl<'a> TaskQueue<'a> {
     /// Pushes a task that despawns an entity.
     pub fn despawn(&mut self, entity: Entity, recursive: bool, unconditional: bool) {
         match (recursive, unconditional) {
-            (true, true)    => self.finally(move |w| w.entity_mut(entity).despawn_recursive()),
-            (true, false)   => self.start(move |w,_| w.entity_mut(entity).despawn_recursive()),
-            (false, true)   => self.finally(move |w| w.entity_mut(entity).despawn()),
-            (false, false)  => self.start(move |w,_| w.entity_mut(entity).despawn()),
+            (true, true) => self.finally(move |w| despawn_recursive(w, entity)),
+            (true, false) => self.start(move |w,_| despawn_recursive(w, entity)),
+            (false, true) => self.finally(move |w| despawn(w, entity)),
+            (false, false) => self.start(move |w,_| despawn(w, entity)),
         }
     }
 
@@ -238,10 +247,14 @@ impl<'a> TaskQueue<'a> {
     /// Clears all tasks in the task queue.
     /// Does not push a task.
     pub fn clear(&mut self, world: &mut World) {
-        while let Some(task) = self.tasks.pop_front() {
-            task.finally(world);
-        }
+        clear_tasks(self.tasks, world);
         self.insert_index = 0;
+    }
+}
+
+fn clear_tasks(tasks: &mut VecDeque<Box<dyn Task>>, world: &mut World) {
+    while let Some(task) = tasks.pop_front() {
+        task.finally(world);
     }
 }
 
@@ -349,5 +362,42 @@ impl TaskLock {
         if !*is_locked { return false };
         *is_locked = false;
         true
+    }
+}
+
+/// Recursively despawns entities, clearing their [`TaskRunner`]s along the way.
+pub struct DespawnRecursive;
+impl EntityCommand for DespawnRecursive {
+    fn apply(self, id: Entity, world: &mut World) {
+        despawn_recursive(world, id);
+    }
+}
+
+pub fn despawn_recursive(world: &mut World, entity: Entity) {
+    let mut to_despawn = Vec::new();
+    despawn_children_recursive(world, entity, &mut to_despawn);
+    for e in to_despawn { despawn(world, e) }
+    despawn(world, entity);
+}
+
+fn despawn_children_recursive(world: &World, entity: Entity, to_despawn: &mut Vec<Entity>) {
+    if let Some(children) = world.get::<Children>(entity) {
+        for e in children.into_iter().copied() {
+            let Some(e) = world.get_entity(e) else { continue };
+            if e.contains::<Keep>() { continue }
+            despawn_children_recursive(world, e.id(), to_despawn);
+            to_despawn.push(e.id());
+        }
+    }
+}
+
+fn despawn(world: &mut World, entity: Entity) {
+    if let Some(mut entity) = world.get_entity_mut(entity) {
+        if let Some(mut runner) = entity.take::<TaskRunner>() {
+            let world = unsafe { entity.world_mut() };
+            runner.clear(world);
+            entity.update_location();
+        }
+        entity.despawn();
     }
 }

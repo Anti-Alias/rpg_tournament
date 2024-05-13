@@ -43,6 +43,7 @@ impl Task for ShowDialog {
         tq.wait_on_text(text);
         tq.wait_millis(500);
         tq.despawn(dialog, true, true);
+        tq.finally(|_| println!("Ran finally block!!!"));
     }
 }
 
