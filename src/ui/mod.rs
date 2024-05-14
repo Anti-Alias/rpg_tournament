@@ -1,10 +1,9 @@
 mod widgets;
 mod dialog;
 
+use bevy::ecs::system::Command;
 pub use widgets::*;
 pub use dialog::*;
-
-use crate::task::*;
 use bevy::prelude::*;
 use std::sync::Arc;
 
@@ -13,20 +12,29 @@ pub fn ui_plugin(app: &mut App) {
 }
 
 fn handle_ui_interactions(
-    world: &mut World,
-    interactions: &mut QueryState<
-        (&Interaction, &OnPress),
-        Changed<Interaction>
-    >,
+    mut commands: Commands,
+    press_interactions: Query<(&Interaction, &OnPress), Changed<Interaction>>,
 ) {
-    let mut callbacks = vec![];
-    for (interaction, on_press) in interactions.iter(world) {
-        if *interaction == Interaction::Pressed {
-            callbacks.push(on_press.0.clone());
+    for (interaction, on_press) in &press_interactions {
+        if interaction == &Interaction::Pressed {
+            commands.add(on_press.0.clone())
         }
     }
-    for callback in callbacks {
-        callback.invoke(world);
+}
+
+/// Dynamic callback.
+#[derive(Clone)]
+pub struct DynCallback(Arc<dyn Callback>);
+
+impl<C: Callback> From<C> for DynCallback {
+    fn from(value: C) -> Self {
+        Self(Arc::new(value))
+    }
+}
+
+impl Command for DynCallback {
+    fn apply(self, world: &mut World) {
+        self.0.invoke(world);
     }
 }
 
@@ -35,9 +43,9 @@ pub trait Callback: Send + Sync + 'static {
     fn invoke(&self, world: &mut World);
 }
 
-impl<F> Callback for F
+impl<F, R> Callback for F
 where
-    F: Fn(&mut World) + Send + Sync + 'static
+    F: Fn(&mut World) -> R + Send + Sync + 'static,
 {
     fn invoke(&self, world: &mut World) {
         self(world);
@@ -46,24 +54,9 @@ where
 
 /// Component that gets fires when an entity gets pressed.
 #[derive(Component)]
-pub struct OnPress(Arc<dyn Callback>);
+pub struct OnPress(DynCallback);
 impl OnPress {
-
-    /// Invokes a callback function.
-    pub fn call(callback: impl Fn(&mut World) + Send + Sync + 'static) -> Self {
-        Self(Arc::new(callback))
-    }
-
-    /// Spawns an entity with a task created by the producer.
-    pub fn task<P, T>(producer: P) -> Self
-    where
-        P: Fn() -> T + Send + Sync + 'static,
-        T: Task,
-    {
-        Self::call(move |world| {
-            let mut runner = TaskRunner::from(producer());
-            runner.push(Quit { despawn_host: true });
-            world.spawn(runner);
-        })
+    pub fn call(callback: impl Into<DynCallback>) -> Self {
+        Self(callback.into())
     }
 }

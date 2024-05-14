@@ -1,3 +1,5 @@
+use crate::ext::EntityCommandsExt;
+use crate::ext::WorldExt;
 use crate::screen::*;
 use crate::ui::*;
 use crate::dsl::*;
@@ -19,9 +21,9 @@ pub fn setup_options_screen(mut commands: Commands, assets: Res<AssetServer>, mu
         menu_button("Back", &assets, t);        back = last(t);
     end(t);
 
-    commands.entity(graphics).insert(OnPress::call(|_| println!("Graphics pressed!")));
-    commands.entity(sound).insert(OnPress::call(|_| println!("Sound pressed!")));
-    commands.entity(back).insert(OnPress::task(|| FadeToScreen(ScreenState::Title)));
+    commands.entity(graphics).on_press(|_| println!("Graphics pressed!"));
+    commands.entity(sound).on_press(|_| println!("Sound pressed!"));
+    commands.entity(back).on_press(|w| w.spawn_task(FadeToScreen(ScreenState::Title)));
 }
 
 pub fn c_options_root(b: &mut NodeBundle) {

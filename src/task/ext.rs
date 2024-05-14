@@ -29,7 +29,7 @@ impl<'a, 'b> ExtTaskQueue<'a, 'b> {
         });
     }
 
-    /// Waits for dialog text to stop advancing..
+    /// Waits for dialog text to stop advancing.
     pub fn wait_on_text(&mut self, text: Entity) {
         self.run(move |world, _delta| {
             let advancer = world.get::<TextAdvancer>(text).unwrap();

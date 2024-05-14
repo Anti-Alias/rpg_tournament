@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use bevy::utils::smallvec::{smallvec, SmallVec};
 
-/// Utility that aids in building an entity hierarchy.
+/// Utility that aids in building an entity hierarchy using a stateful builder.
+/// Unlike [`ChildBuilder`], it does not use callbacks.
+/// More flexible, but less type safe.
 pub struct TreeBuilder<'a, 'b, 'c> {
     pub commands: &'a mut Commands<'b, 'c>,
     ancestors: SmallVec<[Entity; 16]>,
@@ -11,6 +13,7 @@ pub struct TreeBuilder<'a, 'b, 'c> {
 
 impl<'a, 'b, 'c> TreeBuilder<'a, 'b, 'c> {
 
+    /// Creates builder that will spawn entities as children of the specified parent.
     pub fn new(parent: Entity, commands: &'a mut Commands<'b, 'c>) -> Self {
         Self {
             commands,
@@ -20,6 +23,7 @@ impl<'a, 'b, 'c> TreeBuilder<'a, 'b, 'c> {
         }
     }
 
+    /// Creates builder that will spawn root entities.
     pub fn root(commands: &'a mut Commands<'b, 'c>) -> Self {
         Self {
             commands,
@@ -42,6 +46,7 @@ impl<'a, 'b, 'c> TreeBuilder<'a, 'b, 'c> {
     }
 
     /// Inserts a bundle into the last entity spawned.
+    /// Convenience method.
     pub fn insert(&mut self, bundle: impl Bundle) {
         let last_entity = self.last_entity.expect("Cannot 'insert' here");
         self.commands.entity(last_entity).insert(bundle);
@@ -54,7 +59,8 @@ impl<'a, 'b, 'c> TreeBuilder<'a, 'b, 'c> {
     }
 
     /// Subsequent invocations of "spawn" will spawn entities
-    /// as children of the last entity spawned.
+    /// as children last().
+    /// Used to spawn children.
     pub fn begin(&mut self) {
         if self.next_entity.is_some() {
             panic!("Cannot 'begin' if next entity set");
@@ -65,6 +71,7 @@ impl<'a, 'b, 'c> TreeBuilder<'a, 'b, 'c> {
     }
 
     /// Moves focus back to parent.
+    /// Corresponds to begin().
     pub fn end(&mut self) {
         if self.next_entity.is_some() {
             panic!("Cannot 'end' if next entity set");
@@ -72,8 +79,9 @@ impl<'a, 'b, 'c> TreeBuilder<'a, 'b, 'c> {
         self.last_entity = Some(self.ancestors.pop().expect("Cannot 'end' here"));
     }
 
-    /// Sets the next entity to spawn into.
-    /// Clears after spawning.
+    /// Causes the next spawn() to insert its bundle into the specified entity
+    /// rather than in a new entity.
+    /// Entity will be reparented.
     pub fn next(&mut self, next_entity: Entity) {
         if self.next_entity.is_some() {
             panic!("Cannot call 'next' if next entity is already set");
@@ -81,6 +89,8 @@ impl<'a, 'b, 'c> TreeBuilder<'a, 'b, 'c> {
         self.next_entity = Some(next_entity);
     }
 
+    /// Entity spawn() will add children to.
+    /// None if at the root.
     fn parent(&self) -> Option<Entity> {
         self.ancestors.last().copied()
     }
@@ -98,12 +108,10 @@ pub fn last(t: &TreeBuilder) -> Entity {
     t.last()
 }
 
-/// Helper function.
 pub fn begin(t: &mut TreeBuilder) {
     t.begin();
 }
 
-/// Helper function.
 pub fn end(t: &mut TreeBuilder) {
     t.end();
 }

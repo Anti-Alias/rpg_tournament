@@ -1,16 +1,14 @@
 use std::time::Duration;
-
 use bevy::prelude::*;
 use crate::ui::*;
 use crate::dsl::*;
 
-pub fn spawn_dialog(message: &str, dialog_id: Entity, text_id: Entity, commands: &mut Commands, assets: &AssetServer) -> Entity {
+pub fn spawn_dialog(message: &str, dialog_id: Entity, text_id: Entity, commands: &mut Commands, assets: &AssetServer) {
     let t = &mut TreeBuilder::root(commands);
     node(c_fullscreen, t); begin(t);
         next(dialog_id, t);
         dialog(message, 0.05, &assets, text_id, t);
     end(t);
-    last(t)
 }
 
 pub fn set_dialog_message(message: &str, text_id: Entity, commands: &mut Commands, assets: &AssetServer) {

@@ -348,10 +348,6 @@ impl TaskLock {
         Self(Shared::new(false))
     }
 
-    pub fn is_locked(&self) -> bool {
-        self.0.get()
-    }
-
     /// Acquires lock.
     /// Returns true if successful.
     pub fn lock(&self) -> bool {
