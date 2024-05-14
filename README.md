@@ -1,15 +1,4 @@
-# High Level Docs
-
-## Modules
-
-#### Screen
-Defines every screen in the game.
-Defines tasks related to screen transitions.
-
-#### Task
-Includes plugin that allows for sequential tasks to be run by spawning them
-in an entity.
-
-#### Screen
-Defines screens using a state enum.
-Includes various tasks related to transitioning between screens.
+# RPG Tournament
+My nth attempt at making a game in Bevy.
+I deploy a web version [here](https://anti-alias.github.io/napkinblog/)
+from time to time, so check it out if you're interested.
