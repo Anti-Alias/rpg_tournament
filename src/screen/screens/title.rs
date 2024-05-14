@@ -37,15 +37,19 @@ impl Task for ShowDialog {
         let mut tq = ExtTaskQueue(tq);
         let dialog: Entity = world.spawn_empty().id();
         let text: Entity = world.spawn_empty().id();
-        tq.spawn_dialog("Hello, world!", dialog, text);
+        const WAIT_TIME: u64 = 1000;
+        tq.spawn_dialog("Gee, it sure is boring around here...", dialog, text);
         tq.wait_on_text(text);
-        tq.wait_millis(500);
-        tq.set_dialog_message("How are you on this fine day?", text);
+        tq.wait_millis(WAIT_TIME);
+        tq.set_dialog_message("Only the 'Options' and 'Continue' buttons work...", text);
         tq.wait_on_text(text);
-        tq.wait_millis(500);
-        tq.set_dialog_message("I'm fine, but you already knew that, didn't you?", text);
+        tq.wait_millis(WAIT_TIME);
+        tq.set_dialog_message("I created this demo to test a few features, but...", text);
         tq.wait_on_text(text);
-        tq.wait_millis(500);
+        tq.wait_millis(WAIT_TIME);
+        tq.set_dialog_message("There's not much to see as of yet.", text);
+        tq.wait_on_text(text);
+        tq.wait_millis(WAIT_TIME);
         tq.despawn(text, true, true);
         tq.despawn(dialog, true, true);
     }
