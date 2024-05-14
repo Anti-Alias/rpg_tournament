@@ -8,4 +8,6 @@ wasm-bindgen --no-typescript --target web \
     --out-dir "$WASM_OUT" \
     --out-name "rpg_tournament" \
     ./target/wasm32-unknown-unknown/release/rpg_tournament.wasm
+
+# Copies to wasm out directory
 cp -r assets $WASM_OUT/..
