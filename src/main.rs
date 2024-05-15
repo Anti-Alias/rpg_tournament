@@ -15,14 +15,11 @@ use bevy::render::texture::ImageSamplerDescriptor;
 const RES_SCALE: f32 = 60.0;
 
 fn main() {
-
-    
     let default_plugins = DefaultPlugins
         .set(ImagePlugin { default_sampler: ImageSamplerDescriptor::nearest() })
         .set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: WindowResolution::new(16.0*RES_SCALE, 9.0*RES_SCALE),
-                canvas: Some("#game-canvas".into()),
                 ..default()
             }),
             ..default()
