@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-cargo run --target wasm32-unknown-unknown
+cargo run --release --target wasm32-unknown-unknown
