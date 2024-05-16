@@ -17,7 +17,7 @@ fn spawn_menu(mut commands: Commands, assets: &mut AssetBatch) {
     let new_game: Entity;
     let cont: Entity;
     let options: Entity;
-    node(c_title_root, t); begin(t);
+    node(c_title_root, t); insert(Name::new("Title UI"), t); begin(t);
         menu_button("New Game", assets, t); new_game=last(t);
         menu_button("Continue", assets, t); cont=last(t);
         menu_button("Options", assets, t);  options=last(t);
@@ -46,9 +46,9 @@ impl Task for ShowDialog {
     fn start(&mut self, world: &mut World, tq: &mut TaskQueue) {
         const WAIT_TIME: u64 = 1000;
         let mut tq = ExtTaskQueue(tq);
-        let dialog: Entity = world.spawn_empty().id();
+        let diag_container: Entity = world.spawn_empty().id();
         let text: Entity = world.spawn_empty().id();
-        tq.spawn_dialog("Still not much to see here...", dialog, text);
+        tq.spawn_dialog("Still not much to see here...", diag_container, text);
         tq.wait_on_text(text);
         tq.wait_millis(WAIT_TIME);
         tq.set_dialog_message("Only the 'Options' and 'Continue' buttons work...", text);
@@ -60,8 +60,8 @@ impl Task for ShowDialog {
         tq.set_dialog_message("There's not much to see as of yet.", text);
         tq.wait_on_text(text);
         tq.wait_millis(WAIT_TIME);
-        tq.despawn(text, true, false);
-        tq.despawn(dialog, true, false);
+        tq.despawn(text, true, true);
+        tq.despawn(diag_container, true, true);
     }
 }
 

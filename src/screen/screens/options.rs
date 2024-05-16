@@ -1,7 +1,5 @@
 use crate::batch::*;
-use crate::ext::CommandsExt;
-use crate::ext::EntityCommandsExt;
-use crate::ext::WorldExt;
+use crate::ext::*;
 use crate::screen::*;
 use crate::ui::*;
 use crate::dsl::*;
@@ -18,14 +16,12 @@ fn spawn_menu(mut commands: Commands, assets: &mut AssetBatch) {
     let graphics: Entity;
     let sound: Entity;
     let back: Entity;
-
     let t = &mut TreeBuilder::root(&mut commands);
-    node(c_options_root, t); begin(t);
+    node(c_options_root, t); insert(Name::new("Title UI"), t); begin(t);
         menu_button("Graphics", assets, t); graphics = last(t);
         menu_button("Sound", assets, t);    sound = last(t);
         menu_button("Back", assets, t);     back = last(t);
     end(t);
-
     commands.entity(graphics).on_press(|_| println!("Graphics pressed!"));
     commands.entity(sound).on_press(|_| println!("Sound pressed!"));
     commands.entity(back).on_press(|w| w.spawn_task(FadeToScreen(ScreenState::Title)));

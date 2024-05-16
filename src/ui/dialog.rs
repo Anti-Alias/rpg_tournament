@@ -4,10 +4,10 @@ use crate::batch::AssetBatch;
 use crate::ui::*;
 use crate::dsl::*;
 
-pub fn spawn_dialog(message: &str, dialog_id: Entity, text_id: Entity, commands: &mut Commands, assets: &mut AssetBatch) {
+pub fn spawn_dialog(message: &str, container_id: Entity, text_id: Entity, commands: &mut Commands, assets: &mut AssetBatch) {
     let t = &mut TreeBuilder::root(commands);
+    next(container_id, t);
     node(c_fullscreen, t); begin(t);
-        next(dialog_id, t);
         dialog(message, 0.05, assets, text_id, t);
     end(t);
 }

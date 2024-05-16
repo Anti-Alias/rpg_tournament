@@ -1,7 +1,7 @@
 use crate::batch::{AssetBatch, SpawnBatch};
 use crate::screen::{FadeIn, FadeOut};
 use crate::ui::{set_dialog_message, spawn_dialog, TextAdvancer};
-use super::TaskQueue;
+use super::{TaskQueue, TaskStatus};
 
 use bevy::prelude::*;
 
@@ -21,10 +21,10 @@ impl<'a, 'b> ExtTaskQueue<'a, 'b> {
     }
 
     /// Spawns a dialog entity.
-    pub fn spawn_dialog(&mut self, message: impl Into<String>, dialog_id: Entity, text_id: Entity) {
+    pub fn spawn_dialog(&mut self, message: impl Into<String>, container_id: Entity, text_id: Entity) {
         let message = message.into();
         self.spawn_batch(move |mut commands, assets| {
-            spawn_dialog(&message, dialog_id, text_id, &mut commands, assets);
+            spawn_dialog(&message, container_id, text_id, &mut commands, assets);
         });
     }
 
@@ -49,6 +49,15 @@ impl<'a, 'b> ExtTaskQueue<'a, 'b> {
         self.start(move |world, _tq| {
             let mut next_state = world.resource_mut::<NextState<S>>();
             next_state.set(state);
+        });
+    }
+
+    /// Waits for a particular state to be reached
+    pub fn wait_for_state<S: States>(&mut self, desired_state: S) {
+        self.run(move |world, _| {
+            let current_state = world.resource::<State<S>>();
+            if current_state == &desired_state { TaskStatus::Finished }
+            else { TaskStatus::NotFinished }
         });
     }
 

@@ -11,6 +11,7 @@ use bevy::prelude::*;
 
 pub fn screen_plugin(app: &mut App) {
     app.insert_state(ScreenState::Title);
+    app.insert_state(ScreenLoadState::Loading);
     app.add_systems(OnEnter(ScreenState::Title),        screens::title::setup_title_screen);
     app.add_systems(OnEnter(ScreenState::Options),      screens::options::setup_options_screen);
     app.add_systems(OnEnter(ScreenState::Playground),   screens::playground::setup_playground_screen);
@@ -30,9 +31,10 @@ fn despawn_all(
         collect_children_recursive(world, entity, &mut to_despawn);
     }
     for entity in to_despawn {
-        if let Some(mut runner) = world.entity_mut(entity).take::<TaskRunner>() {
-            runner.clear(world);
-        }
+        let Some(mut w_entity) = world.get_entity_mut(entity) else { continue };
+        if let Some(mut task_runner) = w_entity.take::<TaskRunner>() {
+            task_runner.clear(world);
+        };
         world.despawn(entity);
     }
 }
@@ -50,6 +52,12 @@ pub enum ScreenState {
 #[derive(Component)]
 pub struct Keep;
 
+#[derive(States, Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub enum ScreenLoadState {
+    NotLoading, // Current screen is not loading.
+    Loading,    // Current screen is loading. Transition is waiting.
+}
+
 pub struct FadeToScreen(pub ScreenState);
 impl Task for FadeToScreen {
     fn start(&mut self, _world: &mut World, tq: &mut TaskQueue) {
@@ -64,6 +72,7 @@ impl Task for FadeToScreen {
             tq.fade_in(fade_id, Color::BLACK, 0.25);
             tq.set_state(screen_state);
             tq.fade_out(fade_id, 0.25);
+            tq.despawn(fade_id, false, true);
             tq.set_state(GameState::Running);
             tq.quit(true);
         });

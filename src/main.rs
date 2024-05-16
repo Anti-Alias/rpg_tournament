@@ -5,8 +5,9 @@ mod dsl;
 mod batch;
 mod ext;
 
-use bevy::ui::UiPlugin;
 use bevy::window::WindowResolution;
+#[cfg(feature="inspector")]
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use screen::screen_plugin;
 use task::TaskPlugin;
 use ui::ui_plugin;
@@ -31,14 +32,11 @@ fn main() {
             TaskPlugin,
             screen_plugin,
             ui_plugin,
-            game_plugin,
+            #[cfg(feature="inspector")]
+            WorldInspectorPlugin::new(),
         ))
+        .init_state::<GameState>()
         .run();
-}
-
-
-fn game_plugin(app: &mut App) {
-    app.init_state::<GameState>();
 }
 
 #[derive(States, Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]

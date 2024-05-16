@@ -72,12 +72,10 @@ where
         let assets = world.resource::<AssetServer>();
         self.loading_handles.retain(|handle| !assets.is_loaded_with_dependencies(handle));
         if self.loading_handles.is_empty() {
-            println!("Done");
             self.spawn_commands.apply(world);
             TaskStatus::Finished
         }
         else {
-            println!("Loaing");
             TaskStatus::NotFinished
         }
     }

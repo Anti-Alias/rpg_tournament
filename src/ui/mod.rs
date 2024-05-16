@@ -56,7 +56,7 @@ where
 #[derive(Component)]
 pub struct OnPress(DynCallback);
 impl OnPress {
-    pub fn call(callback: impl Into<DynCallback>) -> Self {
+    pub fn new(callback: impl Into<DynCallback>) -> Self {
         Self(callback.into())
     }
 }
