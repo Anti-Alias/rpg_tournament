@@ -10,11 +10,13 @@ use bevy::prelude::*;
 
 
 pub fn screen_plugin(app: &mut App) {
-    app.insert_state(ScreenState::Title);
-    app.add_systems(OnEnter(ScreenState::Title),    screens::title::setup_title_screen);
-    app.add_systems(OnEnter(ScreenState::Options),  screens::options::setup_options_screen);
-    app.add_systems(OnExit(ScreenState::Title),     despawn_all);
-    app.add_systems(OnExit(ScreenState::Options),   despawn_all);
+    app.insert_state(ScreenState::Playground);
+    app.add_systems(OnEnter(ScreenState::Title),        screens::title::setup_title_screen);
+    app.add_systems(OnEnter(ScreenState::Options),      screens::options::setup_options_screen);
+    app.add_systems(OnEnter(ScreenState::Playground),   screens::playground::setup_playground_screen);
+    app.add_systems(OnExit(ScreenState::Title),         despawn_all);
+    app.add_systems(OnExit(ScreenState::Options),       despawn_all);
+    app.add_systems(OnExit(ScreenState::Playground),    despawn_all);
 }
 
 /// Despawns all entities that don't have a [`Keep`], and don't have an ancestor with a [`Keep`].
@@ -41,7 +43,7 @@ fn despawn_all(
 pub enum ScreenState {
     Title,
     Options,
-    //Map { map_file: String, }
+    Playground,
 }
 
 /// Keeps this entity across screen transitions.
@@ -51,6 +53,7 @@ pub struct Keep;
 pub struct FadeToScreen(pub ScreenState);
 impl Task for FadeToScreen {
     fn start(&mut self, _world: &mut World, tq: &mut TaskQueue) {
+        let host = tq.host();
         let mut tq = ExtTaskQueue(tq);
         let screen_state = self.0.clone();
         tq.quit_if_state(GameState::Transitioning, true);
@@ -65,5 +68,6 @@ impl Task for FadeToScreen {
             tq.set_state(GameState::Running);
             tq.quit(true);
         });
+        tq.despawn(host, false, true);
     }
 }

@@ -1,6 +1,5 @@
 use bevy::prelude::*;
-use crate::ext::EntityCommandsExt;
-use crate::ext::WorldExt;
+use crate::ext::{EntityCommandsExt, WorldExt};
 use crate::screen::*;
 use crate::ui::*;
 use crate::task::*;
@@ -10,21 +9,27 @@ pub fn setup_title_screen(mut commands: Commands, assets: Res<AssetServer>, mut 
     commands.spawn(Camera2dBundle::default());
     scale.0 = 2.0;
 
+    let new_game: Entity;
     let cont: Entity;
     let options: Entity;
     let t = &mut TreeBuilder::root(&mut commands);
     node(c_title_root, t); begin(t);
-        menu_button("New Game", &assets, t);
-        menu_button("Continue", &assets, t); cont = last(t);
-        menu_button("Options", &assets, t);  options = last(t);
+        menu_button("New Game", &assets, t); new_game=last(t);
+        menu_button("Continue", &assets, t); cont=last(t);
+        menu_button("Options", &assets, t);  options=last(t);
         menu_button("Exit", &assets, t);
     end(t);
 
-    let lock = TaskLock::new();
+    commands.entity(new_game).on_press(|world| {
+        let task = FadeToScreen(ScreenState::Playground);
+        world.spawn_task(task);
+    });
     commands.entity(options).on_press(|world| {
         let task = FadeToScreen(ScreenState::Options);
         world.spawn_task(task);
     });
+
+    let lock = TaskLock::new();
     commands.entity(cont).on_press(move |world| {
         let task = Guard::new(ShowDialog, lock.clone());
         world.spawn_task(task);

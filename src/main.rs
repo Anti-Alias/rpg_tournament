@@ -12,14 +12,14 @@ use ui::ui_plugin;
 use bevy::prelude::*;
 use bevy::render::texture::ImageSamplerDescriptor;
 
-const RES_SCALE: f32 = 60.0;
+const RESOLUTION_SCALE: f32 = 60.0;
 
 fn main() {
     let default_plugins = DefaultPlugins
         .set(ImagePlugin { default_sampler: ImageSamplerDescriptor::nearest() })
         .set(WindowPlugin {
             primary_window: Some(Window {
-                resolution: WindowResolution::new(16.0*RES_SCALE, 9.0*RES_SCALE),
+                resolution: WindowResolution::new(16.0*RESOLUTION_SCALE, 9.0*RESOLUTION_SCALE),
                 ..default()
             }),
             ..default()
