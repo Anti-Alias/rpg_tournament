@@ -10,7 +10,11 @@ echo "GAME_DIR: $GAME_DIR"
 echo "";
 
 echo "Compiling wasm binary"
-cargo build --release --target wasm32-unknown-unknown
+cargo build \
+    --release \
+    --no-default-features \
+    --target wasm32-unknown-unknown \
+
 echo "Deploying wasm binary"
 wasm-bindgen --no-typescript --target web \
     --out-dir "$GAME_DIR" \
