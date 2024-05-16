@@ -1,6 +1,7 @@
 use crate::batch::*;
 use crate::ext::*;
 use crate::screen::*;
+use crate::task::Start;
 use crate::ui::*;
 use crate::dsl::*;
 use bevy::prelude::*;
@@ -9,15 +10,18 @@ use bevy::prelude::*;
 pub fn setup_options_screen(mut commands: Commands, mut scale: ResMut<UiScale>) {
     scale.0 = 2.0;      
     commands.spawn(Camera2dBundle::default());
-    commands.spawn_task(SpawnBatch::new(spawn_menu));
+    commands.spawn_task(Start::new(|_, tq| {
+        tq.spawn_batch(spawn_options_menu);
+        tq.send_event(ScreenEvent::FinishedLoading);
+    }));
 }
 
-fn spawn_menu(mut commands: Commands, assets: &mut AssetBatch) {
+fn spawn_options_menu(mut commands: Commands, assets: &mut AssetBatch) {
     let graphics: Entity;
     let sound: Entity;
     let back: Entity;
     let t = &mut TreeBuilder::root(&mut commands);
-    node(c_options_root, t); insert(Name::new("Title UI"), t); begin(t);
+    node(c_options_root, t); begin(t);
         menu_button("Graphics", assets, t); graphics = last(t);
         menu_button("Sound", assets, t);    sound = last(t);
         menu_button("Back", assets, t);     back = last(t);

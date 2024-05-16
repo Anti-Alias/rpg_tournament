@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::batch::{AssetBatch, SpawnBatch};
+use crate::batch::AssetBatch;
 use crate::ext::{CommandsExt, EntityCommandsExt, WorldExt};
 use crate::screen::*;
 use crate::ui::*;
@@ -9,10 +9,13 @@ use crate::dsl::*;
 pub fn setup_title_screen(mut commands: Commands, mut scale: ResMut<UiScale>) {
     scale.0 = 2.0;
     commands.spawn(Camera2dBundle::default());
-    commands.spawn_task(SpawnBatch::new(spawn_menu));
+    commands.spawn_task(Start::new(|_, tq| {
+        tq.spawn_batch(spawn_title_menu);
+        tq.send_event(ScreenEvent::FinishedLoading);
+    }));
 }
 
-fn spawn_menu(mut commands: Commands, assets: &mut AssetBatch) {
+fn spawn_title_menu(mut commands: Commands, assets: &mut AssetBatch) {
     let t = &mut TreeBuilder::root(&mut commands);
     let new_game: Entity;
     let cont: Entity;
@@ -45,7 +48,6 @@ impl Task for ShowDialog {
 
     fn start(&mut self, world: &mut World, tq: &mut TaskQueue) {
         const WAIT_TIME: u64 = 1000;
-        let mut tq = ExtTaskQueue(tq);
         let diag_container: Entity = world.spawn_empty().id();
         let text: Entity = world.spawn_empty().id();
         tq.spawn_dialog("Still not much to see here...", diag_container, text);

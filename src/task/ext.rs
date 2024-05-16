@@ -6,12 +6,9 @@ use super::{TaskQueue, TaskStatus};
 use bevy::prelude::*;
 
 
-/// Wraps a [`TaskQueue`] to extend its functionality.
-#[derive(Deref, DerefMut)]
-pub struct ExtTaskQueue<'a, 'b>(pub &'a mut TaskQueue<'b>);
-impl<'a, 'b> ExtTaskQueue<'a, 'b> {
-
-    /// Spawns 0 or more entities in a single batch.
+/// Extends [`TaskQueue`] functionality.
+impl<'a> TaskQueue<'a> {
+/// Spawns 0 or more entities in a single batch.
     /// Spawn commands will wait until all handles have finished loading.
     pub fn spawn_batch<'c, F>(&mut self, callback: F)
     where
@@ -44,20 +41,15 @@ impl<'a, 'b> ExtTaskQueue<'a, 'b> {
         });
     }
 
-    /// Sets a particular state.
-    pub fn set_state<S: States>(&mut self, state: S) {
-        self.start(move |world, _tq| {
-            let mut next_state = world.resource_mut::<NextState<S>>();
-            next_state.set(state);
-        });
-    }
-
     /// Waits for a particular state to be reached
-    pub fn wait_for_state<S: States>(&mut self, desired_state: S) {
+    pub fn wait_for_event<E: Event + PartialEq>(&mut self, event: E) {
         self.run(move |world, _| {
-            let current_state = world.resource::<State<S>>();
-            if current_state == &desired_state { TaskStatus::Finished }
-            else { TaskStatus::NotFinished }
+            let events = world.resource::<Events<E>>();
+            let mut event_reader = events.get_reader();
+            for e in event_reader.read(events) {
+                if &event == e { return TaskStatus::Finished }
+            }
+            TaskStatus::NotFinished
         });
     }
 

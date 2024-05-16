@@ -3,7 +3,6 @@ mod screens;
 
 pub use tasks::*;
 
-use crate::task::ext::ExtTaskQueue;
 use crate::task::{collect_children_recursive, Task, TaskQueue, TaskRunner};
 use crate::GameState;
 use bevy::prelude::*;
@@ -11,13 +10,13 @@ use bevy::prelude::*;
 
 pub fn screen_plugin(app: &mut App) {
     app.insert_state(ScreenState::Title);
-    app.insert_state(ScreenLoadState::Loading);
     app.add_systems(OnEnter(ScreenState::Title),        screens::title::setup_title_screen);
     app.add_systems(OnEnter(ScreenState::Options),      screens::options::setup_options_screen);
     app.add_systems(OnEnter(ScreenState::Playground),   screens::playground::setup_playground_screen);
     app.add_systems(OnExit(ScreenState::Title),         despawn_all);
     app.add_systems(OnExit(ScreenState::Options),       despawn_all);
     app.add_systems(OnExit(ScreenState::Playground),    despawn_all);
+    app.add_event::<ScreenEvent>();
 }
 
 /// Despawns all entities that don't have a [`Keep`], and don't have an ancestor with a [`Keep`].
@@ -52,25 +51,24 @@ pub enum ScreenState {
 #[derive(Component)]
 pub struct Keep;
 
-#[derive(States, Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub enum ScreenLoadState {
-    NotLoading, // Current screen is not loading.
-    Loading,    // Current screen is loading. Transition is waiting.
+/// Fired when a screen finishes loading.
+#[derive(Event, Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub enum ScreenEvent {
+    FinishedLoading,
 }
 
 pub struct FadeToScreen(pub ScreenState);
 impl Task for FadeToScreen {
     fn start(&mut self, _world: &mut World, tq: &mut TaskQueue) {
-        let mut tq = ExtTaskQueue(tq);
         let screen_state = self.0.clone();
         tq.quit_if_state(GameState::Transitioning, true);
         tq.set_state(GameState::Transitioning);
         tq.start(move |world, tq| {
-            let mut tq = ExtTaskQueue(tq);
             let fade_id = world.spawn(Keep).id();
             tq.insert_host(Keep);
             tq.fade_in(fade_id, Color::BLACK, 0.25);
             tq.set_state(screen_state);
+            tq.wait_for_event(ScreenEvent::FinishedLoading);
             tq.fade_out(fade_id, 0.25);
             tq.despawn(fade_id, false, true);
             tq.set_state(GameState::Running);

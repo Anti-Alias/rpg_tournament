@@ -1,10 +1,13 @@
 use std::f32::consts::PI;
 use bevy::prelude::*;
 
+use crate::screen::ScreenEvent;
+
 pub fn setup_playground_screen(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut events: EventWriter<ScreenEvent>,
 ) {
     let mut plane_mat = StandardMaterial::from(Color::GRAY);
     plane_mat.perceptual_roughness = 1.0;
@@ -35,4 +38,6 @@ pub fn setup_playground_screen(
     dir_light.directional_light.illuminance /= 2.0;
     dir_light.directional_light.shadows_enabled = true;
     commands.spawn(dir_light);
+
+    events.send(ScreenEvent::FinishedLoading);
 }
