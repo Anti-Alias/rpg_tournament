@@ -9,10 +9,10 @@ use crate::dsl::*;
 pub fn setup_title_screen(mut commands: Commands, mut scale: ResMut<UiScale>) {
     scale.0 = 2.0;
     commands.spawn(Camera2dBundle::default());
-    commands.spawn_task(SpawnBatch::new(spawn_menu_task));
+    commands.spawn_task(SpawnBatch::new(spawn_menu));
 }
 
-fn spawn_menu_task(mut commands: Commands, assets: &mut AssetBatch) {
+fn spawn_menu(mut commands: Commands, assets: &mut AssetBatch) {
     let t = &mut TreeBuilder::root(&mut commands);
     let new_game: Entity;
     let cont: Entity;
@@ -48,7 +48,7 @@ impl Task for ShowDialog {
         let mut tq = ExtTaskQueue(tq);
         let dialog: Entity = world.spawn_empty().id();
         let text: Entity = world.spawn_empty().id();
-        tq.spawn_dialog("Gee, it sure is boring around here...", dialog, text);
+        tq.spawn_dialog("Still not much to see here...", dialog, text);
         tq.wait_on_text(text);
         tq.wait_millis(WAIT_TIME);
         tq.set_dialog_message("Only the 'Options' and 'Continue' buttons work...", text);

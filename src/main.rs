@@ -5,6 +5,7 @@ mod dsl;
 mod batch;
 mod ext;
 
+use bevy::ui::UiPlugin;
 use bevy::window::WindowResolution;
 use screen::screen_plugin;
 use task::TaskPlugin;
@@ -13,14 +14,12 @@ use ui::ui_plugin;
 use bevy::prelude::*;
 use bevy::render::texture::ImageSamplerDescriptor;
 
-const RESOLUTION_SCALE: f32 = 60.0;
-
 fn main() {
     let default_plugins = DefaultPlugins
         .set(ImagePlugin { default_sampler: ImageSamplerDescriptor::nearest() })
         .set(WindowPlugin {
             primary_window: Some(Window {
-                resolution: WindowResolution::new(16.0*RESOLUTION_SCALE, 9.0*RESOLUTION_SCALE),
+                resolution: WindowResolution::new(960.0, 540.0),
                 ..default()
             }),
             ..default()

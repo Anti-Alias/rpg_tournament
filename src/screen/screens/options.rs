@@ -1,4 +1,5 @@
-use crate::batch::AssetBatch;
+use crate::batch::*;
+use crate::ext::CommandsExt;
 use crate::ext::EntityCommandsExt;
 use crate::ext::WorldExt;
 use crate::screen::*;
@@ -7,16 +8,18 @@ use crate::dsl::*;
 use bevy::prelude::*;
 
 
-pub fn setup_options_screen(mut commands: Commands, assets: Res<AssetServer>, mut scale: ResMut<UiScale>) {
-    commands.spawn(Camera2dBundle::default());
+pub fn setup_options_screen(mut commands: Commands, mut scale: ResMut<UiScale>) {
     scale.0 = 2.0;      
-    
+    commands.spawn(Camera2dBundle::default());
+    commands.spawn_task(SpawnBatch::new(spawn_menu));
+}
+
+fn spawn_menu(mut commands: Commands, assets: &mut AssetBatch) {
     let graphics: Entity;
     let sound: Entity;
     let back: Entity;
 
     let t = &mut TreeBuilder::root(&mut commands);
-    let assets = &mut AssetBatch::new(assets.clone());
     node(c_options_root, t); begin(t);
         menu_button("Graphics", assets, t); graphics = last(t);
         menu_button("Sound", assets, t);    sound = last(t);
@@ -28,7 +31,9 @@ pub fn setup_options_screen(mut commands: Commands, assets: Res<AssetServer>, mu
     commands.entity(back).on_press(|w| w.spawn_task(FadeToScreen(ScreenState::Title)));
 }
 
-pub fn c_options_root(b: &mut NodeBundle) {
+
+
+fn c_options_root(b: &mut NodeBundle) {
     let s = &mut b.style;
     s.display = Display::Flex;
     s.flex_direction = FlexDirection::Column;
