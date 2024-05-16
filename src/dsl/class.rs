@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::batch::AssetBatch;
+
 /// Something that can overwrite a value, typically a Bundle.
 pub trait Class<B> {
     fn apply(self, b: &mut B);
@@ -72,18 +74,18 @@ impl Class<ImageBundle> for ImageBundle {
 /// Something that can overwrite a value, typically a node bundle.
 /// Depends on an [`AssetServer`], unlike [`Class`].
 pub trait AssetClass<B> {
-    fn apply(self, assets: &AssetServer, b: &mut B);
+    fn apply(self, assets: &mut AssetBatch, b: &mut B);
 }
 
 impl<T> AssetClass<T> for () {
-    fn apply(self, _a: &AssetServer, _b: &mut T) {}
+    fn apply(self, _a: &mut AssetBatch, _b: &mut T) {}
 }
 
 impl<F, B> AssetClass<B> for F
 where
-    F: FnOnce(&AssetServer, &mut B),
+    F: FnOnce(&mut AssetBatch, &mut B),
 {
-    fn apply(self, a: &AssetServer, b: &mut B) {
+    fn apply(self, a: &mut AssetBatch, b: &mut B) {
         self(a, b);
     }
 }
@@ -93,7 +95,7 @@ where
     F1: AssetClass<B>,
     F2: AssetClass<B>,
 {
-    fn apply(self, a: &AssetServer, b: &mut B) {
+    fn apply(self, a: &mut AssetBatch, b: &mut B) {
         self.0.apply(a, b);
         self.1.apply(a, b);
     }
@@ -105,7 +107,7 @@ where
     F2: AssetClass<B>,
     F3: AssetClass<B>,
 {
-    fn apply(self, a: &AssetServer, b: &mut B) {
+    fn apply(self, a: &mut AssetBatch, b: &mut B) {
         self.0.apply(a, b);
         self.1.apply(a, b);
         self.2.apply(a, b);
@@ -119,7 +121,7 @@ where
     F3: AssetClass<B>,
     F4: AssetClass<B>,
 {
-    fn apply(self, a: &AssetServer, b: &mut B) {
+    fn apply(self, a: &mut AssetBatch, b: &mut B) {
         self.0.apply(a, b);
         self.1.apply(a, b);
         self.2.apply(a, b);
@@ -128,19 +130,19 @@ where
 }
 
 impl AssetClass<ButtonBundle> for ButtonBundle {
-    fn apply(self, _a: &AssetServer, b: &mut ButtonBundle) {
+    fn apply(self, _a: &mut AssetBatch, b: &mut ButtonBundle) {
         *b = self;
     }
 }
 
 impl AssetClass<TextBundle> for TextBundle {
-    fn apply(self, _a: &AssetServer, b: &mut TextBundle) {
+    fn apply(self, _a: &mut AssetBatch, b: &mut TextBundle) {
         *b = self;
     }
 }
 
 impl AssetClass<TextStyle> for TextStyle {
-    fn apply(self, _a: &AssetServer, b: &mut TextStyle) {
+    fn apply(self, _a: &mut AssetBatch, b: &mut TextStyle) {
         *b = self;
     }
 }

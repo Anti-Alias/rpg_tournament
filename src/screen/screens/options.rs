@@ -1,3 +1,4 @@
+use crate::batch::AssetBatch;
 use crate::ext::EntityCommandsExt;
 use crate::ext::WorldExt;
 use crate::screen::*;
@@ -15,10 +16,11 @@ pub fn setup_options_screen(mut commands: Commands, assets: Res<AssetServer>, mu
     let back: Entity;
 
     let t = &mut TreeBuilder::root(&mut commands);
+    let assets = &mut AssetBatch::new(assets.clone());
     node(c_options_root, t); begin(t);
-        menu_button("Graphics", &assets, t);    graphics = last(t);
-        menu_button("Sound", &assets, t);       sound = last(t);
-        menu_button("Back", &assets, t);        back = last(t);
+        menu_button("Graphics", assets, t); graphics = last(t);
+        menu_button("Sound", assets, t);    sound = last(t);
+        menu_button("Back", assets, t);     back = last(t);
     end(t);
 
     commands.entity(graphics).on_press(|_| println!("Graphics pressed!"));

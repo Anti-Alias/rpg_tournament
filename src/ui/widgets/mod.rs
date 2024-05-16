@@ -1,6 +1,7 @@
 mod components;
 pub use components::*;
 
+use crate::batch::AssetBatch;
 use crate::dsl::*;
 use bevy::prelude::*;
 use std::time::Duration;
@@ -16,11 +17,11 @@ pub fn node(class: impl Class<NodeBundle>, t: &mut TreeBuilder) {
 pub fn text(
     value: impl Into<String>,
     class: impl AssetClass<TextStyle>,
-    assets: &AssetServer,
+    assets: &mut AssetBatch,
     t: &mut TreeBuilder
 ) {
     let mut text_style = TextStyle::default();
-    class.apply(&assets, &mut text_style);
+    class.apply(assets, &mut text_style);
     let section = TextSection::new(value, text_style);
     let mut bundle = TextBundle::default();
     bundle.text.sections.push(section);
@@ -32,11 +33,11 @@ pub fn advancing_text(
     value: impl Into<String>,
     char_duration_secs: f32,
     class: impl AssetClass<TextStyle>,
-    assets: &AssetServer,
+    assets: &mut AssetBatch,
     t: &mut TreeBuilder
 ) {
     let mut text_style = TextStyle::default();
-    class.apply(&assets, &mut text_style);
+    class.apply(assets, &mut text_style);
     let section_pairs = gen_section_pairs([TextSection::new(value, text_style)]);
     let mut bundle = TextBundle::default();
     bundle.text.sections = section_pairs;
@@ -51,7 +52,7 @@ pub fn patch(
     bottom: f32,
     top: f32,
     class: impl AssetClass<ImageBundle>,
-    assets: &AssetServer,
+    assets: &mut AssetBatch,
     t: &mut TreeBuilder
 ) {
     let scale_mode = ImageScaleMode::Sliced(TextureSlicer {
@@ -70,7 +71,7 @@ pub fn patch_button(
     bottom: f32,
     top: f32,
     class: impl AssetClass<ButtonBundle>,
-    assets: &AssetServer,
+    assets: &mut AssetBatch,
     t: &mut TreeBuilder
 ) {
     let scale_mode = ImageScaleMode::Sliced(TextureSlicer {
@@ -84,7 +85,7 @@ pub fn patch_button(
 
 pub fn menu_button(
     txt: impl Into<String>,
-    assets: &AssetServer,
+    assets: &mut AssetBatch,
     t: &mut TreeBuilder,
 ) {
     patch_button(7.0, 7.0, 15.0, 15.0, c_wood, assets, t); begin(t);
@@ -94,7 +95,7 @@ pub fn menu_button(
 
 
 // ------------------ Classes ------------------
-pub fn c_wood(a: &AssetServer, b: &mut ButtonBundle) {
+pub fn c_wood(a: &mut AssetBatch, b: &mut ButtonBundle) {
     b.style.justify_content = JustifyContent::Center;
     b.style.align_items = AlignItems::Center;
     b.style.width = Val::Px(100.0);
@@ -104,7 +105,7 @@ pub fn c_wood(a: &AssetServer, b: &mut ButtonBundle) {
     b.image = a.load::<Image>("ui/wood_button.png").into();
 }
 
-fn c_title_font(a: &AssetServer, s: &mut TextStyle) {
+fn c_title_font(a: &mut AssetBatch, s: &mut TextStyle) {
     s.font = a.load("ui/yoster.ttf");
     s.font_size = 12.0;
 }

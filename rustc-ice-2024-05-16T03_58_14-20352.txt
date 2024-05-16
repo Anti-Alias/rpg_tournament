@@ -1,0 +1,66 @@
+thread 'rustc' panicked at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540\compiler\rustc_query_system\src\query\plumbing.rs:726:9:
+Found unstable fingerprints for type_op_prove_predicate(98409c2a1f1b1fe6-84358d0c90d1042c): Ok(Canonical { value: QueryResponse { var_values: CanonicalVarValues { var_values: ['^0, '^1] }, region_constraints: QueryRegionConstraints { outlives: [], member_constraints: [] }, certainty: Ambiguous, opaque_types: [], value: () }, max_universe: U0, defining_opaque_types: [], variables: [CanonicalVarInfo { kind: Region(U0) }, CanonicalVarInfo { kind: Region(U0) }] })
+stack backtrace:
+   0:     0x7fffc1add553 - std::backtrace_rs::backtrace::dbghelp64::trace
+                               at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540/library\std\src\..\..\backtrace\src\backtrace\dbghelp64.rs:91
+   1:     0x7fffc1add553 - std::backtrace_rs::backtrace::trace_unsynchronized
+                               at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540/library\std\src\..\..\backtrace\src\backtrace\mod.rs:66
+   2:     0x7fffc1add553 - std::backtrace::Backtrace::create
+                               at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540/library\std\src\backtrace.rs:331
+   3:     0x7fffc1add49a - std::backtrace::Backtrace::force_capture
+                               at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540/library\std\src\backtrace.rs:312
+   4:     0x7fffc6542e50 - memchr
+   5:     0x7fffc1af7197 - alloc::boxed::impl$50::call
+                               at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540/library\alloc\src\boxed.rs:2036
+   6:     0x7fffc1af7197 - std::panicking::rust_panic_with_hook
+                               at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540/library\std\src\panicking.rs:799
+   7:     0x7fffc1af7027 - std::panicking::begin_panic_handler::closure$0
+                               at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540/library\std\src\panicking.rs:664
+   8:     0x7fffc1af453f - std::sys_common::backtrace::__rust_end_short_backtrace<std::panicking::begin_panic_handler::closure_env$0,never$>
+                               at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540/library\std\src\sys_common\backtrace.rs:171
+   9:     0x7fffc1af6cd8 - std::panicking::begin_panic_handler
+                               at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540/library\std\src\panicking.rs:652
+  10:     0x7fffc1b4e9b4 - core::panicking::panic_fmt
+                               at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540/library\core\src\panicking.rs:72
+  11:     0x7fffc6edf77d - <rustc_ty_utils[4907e06e39a10734]::opaque_types::OpaqueTypeCollector as rustc_type_ir[43bc05b769da345d]::visit::TypeVisitor<rustc_middle[98fdd807201defd]::ty::context::TyCtxt>>::visit_ty
+  12:     0x7fffc4d44b58 - rustc_ty_utils[4907e06e39a10734]::ty::adt_sized_constraint
+  13:     0x7fffc5b007b2 - rustc_ty_utils[4907e06e39a10734]::ty::self_ty_of_trait_impl_enabling_order_dep_trait_object_hack
+  14:     0x7fffc5bff23a - rustc_query_impl[398269c28318e97c]::plumbing::query_key_hash_verify_all
+  15:     0x7fffc5e9c94e - <rustc_middle[98fdd807201defd]::traits::query::type_op::ProvePredicate as rustc_trait_selection[1835e926b47e7b2c]::traits::query::type_op::QueryTypeOp>::perform_query
+  16:     0x7fffc574a371 - <rustc_borrowck[b52d6767ef91adfb]::region_infer::RegionInferenceContext>::eval_outlives
+  17:     0x7fffc576533e - <rustc_borrowck[b52d6767ef91adfb]::region_infer::RegionInferenceContext>::eval_outlives
+  18:     0x7fffc5726fa6 - <rustc_borrowck[b52d6767ef91adfb]::type_check::TypeVerifier as rustc_middle[98fdd807201defd]::mir::visit::Visitor>::visit_constant
+  19:     0x7fffc572e2b8 - <rustc_borrowck[b52d6767ef91adfb]::type_check::TypeVerifier as rustc_middle[98fdd807201defd]::mir::visit::Visitor>::visit_body
+  20:     0x7fffc57132e6 - <rustc_borrowck[b52d6767ef91adfb]::type_check::relate_tys::NllTypeRelating as rustc_middle[98fdd807201defd]::ty::relate::TypeRelation>::consts
+  21:     0x7fffc56e0837 - rustc_borrowck[b52d6767ef91adfb]::dataflow::calculate_borrows_out_of_scope_at_location
+  22:     0x7fffc57d0df4 - <rustc_borrowck[b52d6767ef91adfb]::type_check::relate_tys::NllTypeRelating as rustc_middle[98fdd807201defd]::ty::relate::TypeRelation>::regions
+  23:     0x7fffc57385cc - rustc_borrowck[b52d6767ef91adfb]::mir_borrowck
+  24:     0x7fffc5bec94a - rustc_query_impl[398269c28318e97c]::plumbing::query_key_hash_verify_all
+  25:     0x7fffc5b479e6 - rustc_ty_utils[4907e06e39a10734]::ty::self_ty_of_trait_impl_enabling_order_dep_trait_object_hack
+  26:     0x7fffc5bf640f - rustc_query_impl[398269c28318e97c]::plumbing::query_key_hash_verify_all
+  27:     0x7fffc51c2274 - <rustc_interface[72baaf845d911460]::passes::LintStoreExpandImpl as rustc_expand[f7b982e514365ffe]::base::LintStoreExpand>::pre_expansion_lint
+  28:     0x7fffc2408237 - rustc_interface[72baaf845d911460]::passes::create_global_ctxt
+  29:     0x7fffc4dab8aa - <dyn std[89c5537b323c5928]::io::Write as nu_ansi_term[6c19313a85717f42]::write::AnyWrite>::write_str
+  30:     0x7fffc4ccba89 - rustc_ty_utils[4907e06e39a10734]::ty::adt_sized_constraint
+  31:     0x7fffc4db0e33 - rustc_query_impl[398269c28318e97c]::query_system
+  32:     0x7fffc23c3b59 - llvm::function_ref<void __cdecl(llvm::Value const * __ptr64)>::callback_fn<`llvm::Value::stripInBoundsOffsets'::`1'::<lambda_1_1> >
+  33:     0x7fffc23c0f1f - llvm::function_ref<void __cdecl(llvm::Value const * __ptr64)>::callback_fn<`llvm::Value::stripInBoundsOffsets'::`1'::<lambda_1_1> >
+  34:     0x7fffc23c8be9 - llvm::function_ref<void __cdecl(llvm::Value const * __ptr64)>::callback_fn<`llvm::Value::stripInBoundsOffsets'::`1'::<lambda_1_1> >
+  35:     0x7fffc1b0823d - alloc::boxed::impl$48::call_once
+                               at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540/library\alloc\src\boxed.rs:2022
+  36:     0x7fffc1b0823d - alloc::boxed::impl$48::call_once
+                               at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540/library\alloc\src\boxed.rs:2022
+  37:     0x7fffc1b0823d - std::sys::pal::windows::thread::impl$0::new::thread_start
+                               at /rustc/ef0027897d2e9014766fb47dce9ddbb925d2f540/library\std\src\sys\pal\windows\thread.rs:52
+  38:     0x7ff8382c7344 - BaseThreadInitThunk
+  39:     0x7ff8399c26b1 - RtlUserThreadStart
+
+
+rustc version: 1.80.0-nightly (ef0027897 2024-05-12)
+platform: x86_64-pc-windows-msvc
+
+query stack during panic:
+#0 [type_op_prove_predicate] evaluating `type_op_prove_predicate` `ProvePredicate { predicate: Binder { value: TraitPredicate(<&str as core::convert::Into<bevy_asset::path::AssetPath<'_>>>, polarity:Positive), bound_vars: [] } }`
+#1 [mir_borrowck] borrow-checking `ui::dialog::avatar_box::class`
+#2 [analysis] running analysis passes on this crate
+end of query stack

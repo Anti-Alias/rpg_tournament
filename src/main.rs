@@ -2,6 +2,7 @@ mod screen;
 mod task;
 mod ui;
 mod dsl;
+mod batch;
 mod ext;
 
 use bevy::window::WindowResolution;

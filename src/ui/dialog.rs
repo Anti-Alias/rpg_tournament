@@ -1,17 +1,18 @@
 use std::time::Duration;
 use bevy::prelude::*;
+use crate::batch::AssetBatch;
 use crate::ui::*;
 use crate::dsl::*;
 
-pub fn spawn_dialog(message: &str, dialog_id: Entity, text_id: Entity, commands: &mut Commands, assets: &AssetServer) {
+pub fn spawn_dialog(message: &str, dialog_id: Entity, text_id: Entity, commands: &mut Commands, assets: &mut AssetBatch) {
     let t = &mut TreeBuilder::root(commands);
     node(c_fullscreen, t); begin(t);
         next(dialog_id, t);
-        dialog(message, 0.05, &assets, text_id, t);
+        dialog(message, 0.05, assets, text_id, t);
     end(t);
 }
 
-pub fn set_dialog_message(message: &str, text_id: Entity, commands: &mut Commands, assets: &AssetServer) {
+pub fn set_dialog_message(message: &str, text_id: Entity, commands: &mut Commands, assets: &mut AssetBatch) {
     let mut style = TextStyle::default();
     c_dialog_font(assets, &mut style);
     let section_pairs = gen_section_pairs([TextSection::new(message, style)]);
@@ -23,8 +24,8 @@ pub fn set_dialog_message(message: &str, text_id: Entity, commands: &mut Command
 
 // ---------------- Widgets ---------------------
 
-pub fn dialog(txt: impl Into<String>, char_duration_secs: f32, assets: &AssetServer, text_id: Entity, t: &mut TreeBuilder) {
-    fn c_patch(a: &AssetServer, b: &mut ImageBundle) {
+pub fn dialog(txt: impl Into<String>, char_duration_secs: f32, assets: &mut AssetBatch, text_id: Entity, t: &mut TreeBuilder) {
+    fn c_patch(a: &mut AssetBatch, b: &mut ImageBundle) {
         let s = &mut b.style;
         s.justify_content = JustifyContent::Stretch;
         s.align_items = AlignItems::Center;
@@ -51,8 +52,8 @@ pub fn dialog(txt: impl Into<String>, char_duration_secs: f32, assets: &AssetSer
     end(t);
 }
 
-fn avatar_box(assets: &AssetServer, t: &mut TreeBuilder) {
-    fn class(assets: &AssetServer, b: &mut ImageBundle) {
+fn avatar_box(assets: &mut AssetBatch, t: &mut TreeBuilder) {
+    fn class(assets: &mut AssetBatch, b: &mut ImageBundle) {
         b.style.width = Val::Px(40.0);
         b.style.height = Val::Px(40.0);
         b.style.margin = UiRect::all(Val::Px(5.0));
@@ -62,7 +63,7 @@ fn avatar_box(assets: &AssetServer, t: &mut TreeBuilder) {
 }
 
 // -------------------- Classes ----------------------
-fn c_dialog_font(a: &AssetServer, s: &mut TextStyle) {
+fn c_dialog_font(a: &mut AssetBatch, s: &mut TextStyle) {
     s.font = a.load("ui/yoster.ttf");
     s.font_size = 12.0;
 }

@@ -1,23 +1,27 @@
 use bevy::prelude::*;
-use crate::ext::{EntityCommandsExt, WorldExt};
+use crate::batch::{AssetBatch, SpawnBatch};
+use crate::ext::{CommandsExt, EntityCommandsExt, WorldExt};
 use crate::screen::*;
 use crate::ui::*;
 use crate::task::*;
 use crate::dsl::*;
 
-pub fn setup_title_screen(mut commands: Commands, assets: Res<AssetServer>, mut scale: ResMut<UiScale>) {
-    commands.spawn(Camera2dBundle::default());
+pub fn setup_title_screen(mut commands: Commands, mut scale: ResMut<UiScale>) {
     scale.0 = 2.0;
+    commands.spawn(Camera2dBundle::default());
+    commands.spawn_task(SpawnBatch::new(spawn_menu_task));
+}
 
+fn spawn_menu_task(mut commands: Commands, assets: &mut AssetBatch) {
+    let t = &mut TreeBuilder::root(&mut commands);
     let new_game: Entity;
     let cont: Entity;
     let options: Entity;
-    let t = &mut TreeBuilder::root(&mut commands);
     node(c_title_root, t); begin(t);
-        menu_button("New Game", &assets, t); new_game=last(t);
-        menu_button("Continue", &assets, t); cont=last(t);
-        menu_button("Options", &assets, t);  options=last(t);
-        menu_button("Exit", &assets, t);
+        menu_button("New Game", assets, t); new_game=last(t);
+        menu_button("Continue", assets, t); cont=last(t);
+        menu_button("Options", assets, t);  options=last(t);
+        menu_button("Exit", assets, t);
     end(t);
 
     commands.entity(new_game).on_press(|world| {
@@ -38,11 +42,12 @@ pub fn setup_title_screen(mut commands: Commands, assets: Res<AssetServer>, mut 
 
 pub struct ShowDialog;
 impl Task for ShowDialog {
+
     fn start(&mut self, world: &mut World, tq: &mut TaskQueue) {
+        const WAIT_TIME: u64 = 1000;
         let mut tq = ExtTaskQueue(tq);
         let dialog: Entity = world.spawn_empty().id();
         let text: Entity = world.spawn_empty().id();
-        const WAIT_TIME: u64 = 1000;
         tq.spawn_dialog("Gee, it sure is boring around here...", dialog, text);
         tq.wait_on_text(text);
         tq.wait_millis(WAIT_TIME);
@@ -55,8 +60,8 @@ impl Task for ShowDialog {
         tq.set_dialog_message("There's not much to see as of yet.", text);
         tq.wait_on_text(text);
         tq.wait_millis(WAIT_TIME);
-        tq.despawn(text, true, true);
-        tq.despawn(dialog, true, true);
+        tq.despawn(text, true, false);
+        tq.despawn(dialog, true, false);
     }
 }
 

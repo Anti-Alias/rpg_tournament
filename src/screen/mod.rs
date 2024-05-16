@@ -10,7 +10,7 @@ use bevy::prelude::*;
 
 
 pub fn screen_plugin(app: &mut App) {
-    app.insert_state(ScreenState::Playground);
+    app.insert_state(ScreenState::Title);
     app.add_systems(OnEnter(ScreenState::Title),        screens::title::setup_title_screen);
     app.add_systems(OnEnter(ScreenState::Options),      screens::options::setup_options_screen);
     app.add_systems(OnEnter(ScreenState::Playground),   screens::playground::setup_playground_screen);
@@ -53,7 +53,6 @@ pub struct Keep;
 pub struct FadeToScreen(pub ScreenState);
 impl Task for FadeToScreen {
     fn start(&mut self, _world: &mut World, tq: &mut TaskQueue) {
-        let host = tq.host();
         let mut tq = ExtTaskQueue(tq);
         let screen_state = self.0.clone();
         tq.quit_if_state(GameState::Transitioning, true);
@@ -68,6 +67,5 @@ impl Task for FadeToScreen {
             tq.set_state(GameState::Running);
             tq.quit(true);
         });
-        tq.despawn(host, false, true);
     }
 }
