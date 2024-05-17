@@ -3,6 +3,7 @@ use crate::screen::{FadeIn, FadeOut};
 use crate::ui::{set_dialog_message, spawn_dialog, TextAdvancer};
 use super::{TaskQueue, TaskStatus};
 
+use bevy::ecs::system::CommandQueue;
 use bevy::prelude::*;
 
 
@@ -12,7 +13,7 @@ impl<'a> TaskQueue<'a> {
     /// Spawn commands will wait until all handles have finished loading.
     pub fn spawn_batch<'c, F>(&mut self, callback: F)
     where
-        F: FnOnce(Commands, &mut AssetBatch) + Send + Sync + 'static
+        F: FnOnce(&mut World, &mut CommandQueue, &mut AssetBatch) + Send + Sync + 'static
     {
         self.push(SpawnBatch::new(callback));
     }
@@ -20,7 +21,8 @@ impl<'a> TaskQueue<'a> {
     /// Spawns a dialog entity.
     pub fn spawn_dialog(&mut self, message: impl Into<String>, container_id: Entity, text_id: Entity) {
         let message = message.into();
-        self.spawn_batch(move |mut commands, assets| {
+        self.spawn_batch(move |world, commands, assets| {
+            let mut commands = Commands::new(commands, world);
             spawn_dialog(&message, container_id, text_id, &mut commands, assets);
         });
     }
@@ -28,7 +30,8 @@ impl<'a> TaskQueue<'a> {
     /// Updates a dialog's text.
     pub fn set_dialog_message(&mut self, message: impl Into<String>, text_id: Entity) {
         let message = message.into();
-        self.spawn_batch(move |mut commands, assets| {
+        self.spawn_batch(move |world, commands, assets| {
+            let mut commands = Commands::new(commands, world);
             set_dialog_message(&message, text_id, &mut commands, assets);
         });
     }

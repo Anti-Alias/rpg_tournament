@@ -1,3 +1,4 @@
+use bevy::ecs::system::CommandQueue;
 use bevy::prelude::*;
 use crate::batch::AssetBatch;
 use crate::ext::{CommandsExt, EntityCommandsExt, WorldExt};
@@ -15,7 +16,12 @@ pub fn setup_title_screen(mut commands: Commands, mut scale: ResMut<UiScale>) {
     }));
 }
 
-fn spawn_title_menu(mut commands: Commands, assets: &mut AssetBatch) {
+fn spawn_title_menu(
+    world: &mut World,
+    commands: &mut CommandQueue,
+    assets: &mut AssetBatch
+) {
+    let mut commands = Commands::new(commands, world);
     let t = &mut TreeBuilder::root(&mut commands);
     let new_game: Entity;
     let cont: Entity;

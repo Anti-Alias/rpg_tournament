@@ -8,6 +8,10 @@ use crate::GameState;
 use bevy::prelude::*;
 
 
+/// State that controls what screen is being displayed.
+#[derive(States, Clone, PartialEq, Eq, Hash, Debug)]
+pub enum ScreenState { Title, Options, Playground }
+
 pub fn screen_plugin(app: &mut App) {
     app.insert_state(ScreenState::Title);
     app.add_systems(OnEnter(ScreenState::Title),        screens::title::setup_title_screen);
@@ -20,6 +24,7 @@ pub fn screen_plugin(app: &mut App) {
 }
 
 /// Despawns all entities that don't have a [`Keep`], and don't have an ancestor with a [`Keep`].
+/// Also, does not despawn important internal bevy entities.
 fn despawn_all(
     world: &mut World,
     despawnables: &mut QueryState<Entity, (Without<Window>, Without<Keep>, Without<Parent>)>
@@ -38,14 +43,6 @@ fn despawn_all(
     }
 }
 
-
-/// State that controls what screen is being displayed.
-#[derive(States, Clone, PartialEq, Eq, Hash, Debug)]
-pub enum ScreenState {
-    Title,
-    Options,
-    Playground,
-}
 
 /// Keeps this entity across screen transitions.
 #[derive(Component)]

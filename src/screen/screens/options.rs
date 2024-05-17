@@ -4,6 +4,7 @@ use crate::screen::*;
 use crate::task::Start;
 use crate::ui::*;
 use crate::dsl::*;
+use bevy::ecs::system::CommandQueue;
 use bevy::prelude::*;
 
 
@@ -16,11 +17,13 @@ pub fn setup_options_screen(mut commands: Commands, mut scale: ResMut<UiScale>) 
     }));
 }
 
-fn spawn_options_menu(mut commands: Commands, assets: &mut AssetBatch) {
+fn spawn_options_menu(world: &mut World, commands: &mut CommandQueue, assets: &mut AssetBatch) {
     let graphics: Entity;
     let sound: Entity;
     let back: Entity;
-    let t = &mut TreeBuilder::root(&mut commands);
+
+    let commands = &mut Commands::new(commands, world);
+    let t = &mut TreeBuilder::root(commands);
     node(c_options_root, t); begin(t);
         menu_button("Graphics", assets, t); graphics = last(t);
         menu_button("Sound", assets, t);    sound = last(t);

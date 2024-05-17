@@ -1,4 +1,5 @@
 mod screen;
+mod sprite;
 mod task;
 mod ui;
 mod dsl;
@@ -9,7 +10,8 @@ use bevy::window::WindowResolution;
 #[cfg(feature="inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use screen::screen_plugin;
-use task::TaskPlugin;
+use sprite::sprite_plugin;
+use task::task_plugin;
 use ui::ui_plugin;
 
 use bevy::prelude::*;
@@ -29,7 +31,8 @@ fn main() {
     App::new()
         .add_plugins((
             default_plugins,
-            TaskPlugin,
+            task_plugin,
+            sprite_plugin,
             screen_plugin,
             ui_plugin,
             #[cfg(feature="inspector")]

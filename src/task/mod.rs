@@ -12,13 +12,12 @@ use bevy::transform::TransformSystem;
 use crate::screen::Keep;
 
 /**
- * Allows for a set arbitrary tasks to be run one after another.
+ * Allows for a set arbitrary tasks to be run one after another in a sequence.
+ * Useful for cutscenes, animated screen transitions, and simple one-off behaviors
+ * that last multiple frames.
  */
-pub struct TaskPlugin;
-impl Plugin for TaskPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(PostUpdate, run_task_runners.before(TransformSystem::TransformPropagate));
-    }
+pub fn task_plugin(app: &mut App) {
+    app.add_systems(PostUpdate, run_task_runners.before(TransformSystem::TransformPropagate));
 }
 
 fn run_task_runners(

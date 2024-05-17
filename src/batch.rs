@@ -57,14 +57,13 @@ impl<F> SpawnBatch<F> {
 
 impl<F> Task for SpawnBatch<F>
 where
-    F: FnOnce(Commands, &mut AssetBatch) + Send + Sync + 'static,
+    F: FnOnce(&mut World, &mut CommandQueue, &mut AssetBatch) + Send + Sync + 'static,
 {
     fn start(&mut self, world: &mut World, _tq: &mut TaskQueue) {       
         let assets = world.resource::<AssetServer>();
         let mut assets = AssetBatch::new(assets.clone());
-        let commands = Commands::new(&mut self.spawn_commands, world);
         let spawn_func = self.spawn_func.take().unwrap();
-        spawn_func(commands, &mut assets);
+        spawn_func(world, &mut self.spawn_commands, &mut assets);
         self.loading_handles = assets.finish();
     }
 
