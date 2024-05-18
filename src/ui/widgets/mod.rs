@@ -1,7 +1,7 @@
 mod components;
 pub use components::*;
 
-use crate::batch::AssetBatch;
+use crate::spawn::AssetBatch;
 use crate::dsl::*;
 use bevy::prelude::*;
 use std::time::Duration;

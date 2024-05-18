@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::batch::AssetBatch;
+use crate::spawn::AssetBatch;
 
 /// Something that can overwrite a value, typically a Bundle.
 pub trait Class<B> {

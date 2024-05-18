@@ -3,7 +3,7 @@ mod sprite;
 mod task;
 mod ui;
 mod dsl;
-mod batch;
+mod spawn;
 mod ext;
 
 use bevy::window::WindowResolution;

@@ -1,4 +1,4 @@
-use crate::batch::{AssetBatch, SpawnBatch};
+use crate::spawn::{AssetBatch, SpawnBatch};
 use crate::screen::{FadeIn, FadeOut};
 use crate::ui::{set_dialog_message, spawn_dialog, TextAdvancer};
 use super::{TaskQueue, TaskStatus};

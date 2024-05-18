@@ -6,6 +6,7 @@ pub use tasks::*;
 use crate::task::{collect_children_recursive, Task, TaskQueue, TaskRunner};
 use crate::GameState;
 use bevy::prelude::*;
+use std::fmt;
 
 
 /// State that controls what screen is being displayed.
@@ -13,7 +14,7 @@ use bevy::prelude::*;
 pub enum ScreenState { Title, Options, Playground }
 
 pub fn screen_plugin(app: &mut App) {
-    app.insert_state(ScreenState::Title);
+    app.insert_state(ScreenState::Playground);
     app.add_systems(OnEnter(ScreenState::Title),        screens::title::setup_title_screen);
     app.add_systems(OnEnter(ScreenState::Options),      screens::options::setup_options_screen);
     app.add_systems(OnEnter(ScreenState::Playground),   screens::playground::setup_playground_screen);
