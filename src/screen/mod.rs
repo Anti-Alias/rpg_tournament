@@ -1,12 +1,14 @@
 mod tasks;
 mod screens;
 
+use std::f32::consts::PI;
+
 pub use tasks::*;
 
+use crate::sprite::Sprite3D;
 use crate::task::{collect_children_recursive, Task, TaskQueue, TaskRunner};
 use crate::GameState;
 use bevy::prelude::*;
-use std::fmt;
 
 
 /// State that controls what screen is being displayed.
@@ -14,7 +16,7 @@ use std::fmt;
 pub enum ScreenState { Title, Options, Playground }
 
 pub fn screen_plugin(app: &mut App) {
-    app.insert_state(ScreenState::Playground);
+    app.insert_state(ScreenState::Title);
     app.add_systems(OnEnter(ScreenState::Title),        screens::title::setup_title_screen);
     app.add_systems(OnEnter(ScreenState::Options),      screens::options::setup_options_screen);
     app.add_systems(OnEnter(ScreenState::Playground),   screens::playground::setup_playground_screen);
@@ -22,6 +24,7 @@ pub fn screen_plugin(app: &mut App) {
     app.add_systems(OnExit(ScreenState::Options),       despawn_all);
     app.add_systems(OnExit(ScreenState::Playground),    despawn_all);
     app.add_event::<ScreenEvent>();
+    app.add_systems(Update, rotate_sprites);
 }
 
 /// Despawns all entities that don't have a [`Keep`], and don't have an ancestor with a [`Keep`].
@@ -72,5 +75,14 @@ impl Task for FadeToScreen {
             tq.set_state(GameState::Running);
             tq.quit(true);
         });
+    }
+}
+
+fn rotate_sprites(
+    mut sprites: Query<&mut Transform, With<Sprite3D>>,
+    time: Res<Time>,
+) {
+    for mut transform in &mut sprites {
+        transform.rotate_y(PI * time.delta_seconds());
     }
 }

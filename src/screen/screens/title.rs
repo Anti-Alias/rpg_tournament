@@ -7,9 +7,7 @@ use crate::ui::*;
 use crate::task::*;
 use crate::dsl::*;
 
-pub fn setup_title_screen(mut commands: Commands, mut scale: ResMut<UiScale>) {
-    scale.0 = 2.0;
-    commands.spawn(Camera2dBundle::default());
+pub fn setup_title_screen(mut commands: Commands) {
     commands.spawn_task(Start::new(|_, tq| {
         tq.spawn_batch(spawn_title_menu);
         tq.send_event(ScreenEvent::FinishedLoading);

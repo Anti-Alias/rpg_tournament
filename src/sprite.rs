@@ -1,5 +1,3 @@
-use std::fmt;
-
 use bevy::math::{Affine3A, Vec3A};
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues};
@@ -106,17 +104,24 @@ impl SpriteBatches {
         let mesh = meshes.get_mut(mesh_handle).unwrap();
 
         // Generate sprite vertex data
-        let sprite_offset = sprite_size * (sprite_origin - 0.5);
-        let sprite_normal = sprite_transf.transform_vector3(Vec3::Z).to_array();
-        let sprite_color = sprite.color.as_linear_rgba_f32();
-        let sprite_uvs = get_rect_points(flip(sprite.rect))
-            .map(|point| point / sprite_image_size)
-            .map(|uv| uv.to_array());
+        let sprite_offset = sprite_size * (sprite_origin - 0.5);;
+        let sprite_uvs = get_rect_points(flip(sprite.rect)).map(|point| point / sprite_image_size);
         let sprite_positions = get_rect_points(sprite.rect)
             .map(|point2d| point2d.extend(0.0))
             .map(|point3d| point3d + sprite_offset.extend(0.0))
-            .map(|point3d| sprite_transf.transform_point3(point3d))
-            .map(|point3d| point3d.to_array());
+            .map(|point3d| sprite_transf.transform_point3(point3d));
+        let sprite_normal = {
+            let origin = sprite_positions[0];
+            let a = sprite_positions[1] - origin;
+            let b = sprite_positions[2] - origin;
+            a.cross(b).normalize()
+        };
+
+        // Converts vertex data to arrays
+        let sprite_positions = sprite_positions.map(|pos| pos.to_array());
+        let sprite_normal = sprite_normal.to_array();
+        let sprite_color = sprite.color.as_linear_rgba_f32();
+        let sprite_uvs = sprite_uvs.map(|uv| uv.to_array());
 
         // Appends sprite vertex data to mesh
         let indices = get_indices(mesh);
@@ -215,6 +220,8 @@ fn get_rect_points(rect: Rect) -> [Vec2; 4] {
         Vec2::new(rect.min.x, rect.max.y),
     ]
 }
+
+// fn get_sprite_normal(rect: Rect)
 
 
 fn default_mesh() -> Mesh {

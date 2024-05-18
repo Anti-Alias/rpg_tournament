@@ -9,7 +9,7 @@ mod ext;
 use bevy::window::WindowResolution;
 #[cfg(feature="inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use screen::screen_plugin;
+use screen::{screen_plugin, Keep};
 use sprite::sprite_plugin;
 use task::task_plugin;
 use ui::ui_plugin;
@@ -38,6 +38,7 @@ fn main() {
             #[cfg(feature="inspector")]
             WorldInspectorPlugin::new(),
         ))
+        .add_systems(Startup, start_game)
         .init_state::<GameState>()
         .run();
 }
@@ -49,4 +50,12 @@ pub enum GameState {
     Running,
     /// Transitioning between screens.
     Transitioning,
+}
+
+
+fn start_game(mut commands: Commands, mut scale: ResMut<UiScale>) {
+    scale.0 = 2.0;
+    let mut camera = Camera2dBundle::default();
+    camera.camera.order = 1;
+    commands.spawn(( camera, Keep));
 }

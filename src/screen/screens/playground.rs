@@ -23,14 +23,15 @@ fn spawn_playground(world: &mut World, commands: &mut CommandQueue, assets: &mut
     // Materials
     let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
     let plane_mat = materials.add(StandardMaterial {
-        base_color: Color::YELLOW,
-        perceptual_roughness: 1.0,
+        base_color: Color::GRAY,
         ..default()
     });
     let human_mat = materials.add(StandardMaterial {
         base_color_texture: Some(assets.load("human/sheets/a.png")),
         perceptual_roughness: 1.0,
         alpha_mode: AlphaMode::Mask(0.5),
+        cull_mode: None,
+        double_sided: true,
         ..default()
     });
 
@@ -42,8 +43,8 @@ fn spawn_playground(world: &mut World, commands: &mut CommandQueue, assets: &mut
     let mut plane = PbrBundle::default();
     plane.material = plane_mat;
     plane.mesh = plane_mesh;
-    plane.transform.scale = Vec3::new(1000.0, 1.0, 1000.0);
-    plane.transform.translation.y = -32.0;
+    plane.transform.scale = Vec3::new(100.0, 1.0, 100.0);
+    plane.transform.translation.y = -16.0;
 
     let mut camera = Camera3dBundle::default();
     camera.transform.translation = Vec3::new(0.0, 40.0, 80.0);
