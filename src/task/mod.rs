@@ -21,6 +21,9 @@ pub fn task_plugin(app: &mut App) {
     app.add_systems(PostUpdate, run_task_runners
         .before(TransformSystem::TransformPropagate)
         .before(UiSystem::Layout)
+        .before(UiSystem::Focus)
+        .before(UiSystem::Stack)
+        .before(UiSystem::Outlines)
     );
 }
 
