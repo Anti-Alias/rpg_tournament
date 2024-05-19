@@ -20,7 +20,7 @@ pub fn task_plugin(app: &mut App) {
     app.add_systems(PostUpdate, run_task_runners.before(TransformSystem::TransformPropagate));
 }
 
-fn run_task_runners(
+pub fn run_task_runners(
     world: &mut World,
     runners: &mut QueryState<(Entity, &mut TaskRunner)>,
     mut command_queue: Local<CommandQueue>,

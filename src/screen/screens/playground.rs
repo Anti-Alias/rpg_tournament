@@ -44,31 +44,21 @@ fn spawn_playground(world: &mut World, commands: &mut CommandQueue, assets: &mut
     plane.transform.scale = Vec3::new(100.0, 1.0, 100.0);
     plane.transform.translation.y = -16.0;
 
-    let mut camera = Camera3dBundle::default();
-    camera.transform.translation = Vec3::new(0.0, 100.0, 100.0);
-    camera.transform.look_at(Vec3::ZERO, Vec3::Y);
-
     let mut dir_light = DirectionalLightBundle::default();
     dir_light.directional_light.illuminance /= 2.0;
     dir_light.directional_light.shadows_enabled = true;
     dir_light.transform.rotate_y(-consts::PI / 4.0);
     dir_light.transform.rotate_x(-consts::PI / 4.0);
 
-    let mut player1 = AnimationBundle::default();
-    player1.animations = player_animations;
-    player1.animation_state.animation_index = 0;
-    player1.material = assets.load("human/material.ron.stdmat");
+    let mut player = AnimationBundle::default();
+    player.animations = player_animations;
+    player.animation_state.animation_index = 0;
+    player.material = assets.load("human/material.ron.stdmat");
 
     // Spawn
     let mut commands = Commands::new(commands, world);
     let aabb = Aabb { center: Vec3A::ZERO, half_extents: Vec3A::splat(32.0) };
     commands.spawn((plane, Name::new("Plane")));
-    commands.spawn((camera, Name::new("Camera")));
     commands.spawn((dir_light, Name::new("Dir Light")));
-    commands.spawn((player1, aabb, Anchor::Center, Name::new("Sprite")));
-}
-
-
-fn spawn_player(commands: &mut Commands, assets: &mut AssetBatch) {
-
+    commands.spawn((player, aabb, Anchor::Center, Name::new("Sprite")));
 }

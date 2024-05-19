@@ -61,7 +61,13 @@ pub enum GameState {
 
 fn start_game(mut commands: Commands, mut scale: ResMut<UiScale>) {
     scale.0 = 2.0;
-    let mut ui_camera = Camera2dBundle::default();
-    ui_camera.camera.order = 1;
-    commands.spawn((ui_camera, Keep));
+
+    let mut camera_2d = Camera2dBundle::default();
+    camera_2d.camera.order = 1;
+    commands.spawn((camera_2d, Keep));
+    
+    let mut camera_3d = Camera3dBundle::default();
+    camera_3d.transform.translation = Vec3::new(0.0, 100.0, 100.0);
+    camera_3d.transform.look_at(Vec3::ZERO, Vec3::Y);
+    commands.spawn((camera_3d, Keep));
 }
