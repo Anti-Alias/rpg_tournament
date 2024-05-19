@@ -53,23 +53,3 @@ pub struct Keep;
 pub enum ScreenEvent {
     FinishedLoading,
 }
-
-pub struct FadeToScreen(pub ScreenState);
-impl Task for FadeToScreen {
-    fn start(&mut self, _world: &mut World, tq: &mut TaskQueue) {
-        let screen_state = self.0.clone();
-        tq.quit_if_state(GameState::Transitioning, true);
-        tq.set_state(GameState::Transitioning);
-        tq.start(move |world, tq| {
-            let fade_id = world.spawn(Keep).id();
-            tq.insert_host(Keep);
-            tq.fade_in(fade_id, Color::BLACK, 0.25);
-            tq.set_state(screen_state);
-            tq.wait_for_event(ScreenEvent::FinishedLoading);
-            tq.fade_out(fade_id, 0.25);
-            tq.despawn(fade_id, false, true);
-            tq.set_state(GameState::Running);
-            tq.quit(true);
-        });
-    }
-}

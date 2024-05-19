@@ -8,14 +8,17 @@ mod dsl;
 mod spawn;
 mod ext;
 
+use std::time::Duration;
+
 use animation::animation_plugin;
 use asset::asset_extension_plugin;
 use bevy::window::WindowResolution;
 #[cfg(feature="inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use screen::{screen_plugin, Keep};
+use ext::CommandsExt;
+use screen::{screen_plugin, FadeInitial, Keep, ScreenEvent};
 use sprite::sprite_plugin;
-use task::task_plugin;
+use task::{task_plugin, Start, Task, TaskQueue};
 use ui::ui_plugin;
 
 use bevy::prelude::*;
@@ -70,4 +73,6 @@ fn start_game(mut commands: Commands, mut scale: ResMut<UiScale>) {
     camera_3d.transform.translation = Vec3::new(0.0, 100.0, 100.0);
     camera_3d.transform.look_at(Vec3::ZERO, Vec3::Y);
     commands.spawn((camera_3d, Keep));
+
+    commands.spawn_task(FadeInitial);
 }

@@ -79,7 +79,7 @@ impl<'a> TaskQueue<'a> {
         self.push(FadeIn::new(fade_id, color, duration_secs))
     }
 
-    /// Fades out the fade entity. Despawns it when done.
+    /// Fades out the fade entity.
     pub fn fade_out(&mut self, fade_id: Entity, duration_secs: f32) {
         self.push(FadeOut::new(fade_id, duration_secs))
     }

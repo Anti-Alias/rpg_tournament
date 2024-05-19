@@ -1,6 +1,7 @@
 mod common;
 pub mod ext;
 
+use bevy::ui::UiSystem;
 pub use common::*;
 
 use std::collections::VecDeque;
@@ -17,7 +18,10 @@ use crate::screen::Keep;
  * that last multiple frames.
  */
 pub fn task_plugin(app: &mut App) {
-    app.add_systems(PostUpdate, run_task_runners.before(TransformSystem::TransformPropagate));
+    app.add_systems(PostUpdate, run_task_runners
+        .before(TransformSystem::TransformPropagate)
+        .before(UiSystem::Layout)
+    );
 }
 
 pub fn run_task_runners(

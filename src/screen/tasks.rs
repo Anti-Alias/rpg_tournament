@@ -1,6 +1,9 @@
 use std::time::Duration;
 use bevy::prelude::*;
 use crate::task::{Task, TaskQueue, TaskStatus};
+use crate::GameState;
+
+use super::{Keep, ScreenEvent, ScreenState};
 
 const FADE_Z_INDEX: ZIndex = ZIndex::Global(1024);
 
@@ -95,5 +98,45 @@ impl Task for FadeOut {
         else {
             TaskStatus::FinishedRemaining(self.elapsed - self.duration)
         }
+    }
+}
+
+
+pub struct FadeToScreen(pub ScreenState);
+impl Task for FadeToScreen {
+    fn start(&mut self, _world: &mut World, tq: &mut TaskQueue) {
+        let screen_state = self.0.clone();
+        tq.quit_if_state(GameState::Transitioning, true);
+        tq.set_state(GameState::Transitioning);
+        tq.start(move |world, tq| {
+            let fade_id = world.spawn(Keep).id();
+            tq.insert_host(Keep);
+            tq.fade_in(fade_id, Color::BLACK, 0.25);
+            tq.set_state(screen_state);
+            tq.wait_for_event(ScreenEvent::FinishedLoading);
+            tq.fade_out(fade_id, 0.25);
+            tq.despawn(fade_id, false, true);
+            tq.set_state(GameState::Running);
+            tq.quit(true);
+        });
+    }
+}
+
+
+/// Blankets the screen in a fullscreen fade object, then fades out when screen loading is done.
+pub struct FadeInitial;
+impl Task for FadeInitial {
+    fn start(&mut self, _world: &mut World, tq: &mut TaskQueue) {
+        tq.quit_if_state(GameState::Transitioning, true);
+        tq.start(move |world, tq| {
+            let fade_id = world.spawn_empty().id();
+            tq.fade_in(fade_id, Color::BLACK, 0.0);
+            tq.set_state(GameState::Transitioning);
+            tq.wait_for_event(ScreenEvent::FinishedLoading);
+            tq.wait_secs(0.25);
+            tq.fade_out(fade_id, 0.25);
+            tq.despawn(fade_id, true, true);
+            tq.set_state(GameState::Running);
+        });
     }
 }
