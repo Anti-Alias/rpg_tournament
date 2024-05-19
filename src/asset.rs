@@ -73,7 +73,8 @@ impl AssetLoader for StandardMaterialLoader {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
+#[serde(default)]
 struct LoadingMaterial {
     pub base_color: Color,
     pub base_color_texture: Option<String>,
