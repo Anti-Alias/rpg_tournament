@@ -5,11 +5,13 @@ use bevy::prelude::*;
 use bevy::render::primitives::Aabb;
 use bevy::sprite::Anchor;
 
+use crate::animation::AnimationBundle;
+use crate::asset::CommonAssets;
 use crate::spawn::AssetBatch;
 use crate::ext::CommandsExt;
 use crate::screen::ScreenEvent;
-use crate::sprite::Sprite3DBundle;
 use crate::task::Start;
+
 
 pub fn setup_playground_screen(mut commands: Commands) {
     commands.spawn_task(Start::new(|_, tq| {
@@ -39,6 +41,10 @@ fn spawn_playground(world: &mut World, commands: &mut CommandQueue, assets: &mut
     let mut meshes = world.resource_mut::<Assets<Mesh>>();
     let plane_mesh = meshes.add(Mesh::from(Plane3d { normal: Direction3d::Y }));
 
+    // Animations
+    let common_assets = world.resource::<CommonAssets>();
+    let player_animations = common_assets.player_animations.clone();
+
     // Bundles
     let mut plane = PbrBundle::default();
     plane.material = plane_mat;
@@ -47,7 +53,7 @@ fn spawn_playground(world: &mut World, commands: &mut CommandQueue, assets: &mut
     plane.transform.translation.y = -16.0;
 
     let mut camera = Camera3dBundle::default();
-    camera.transform.translation = Vec3::new(0.0, 40.0, 80.0);
+    camera.transform.translation = Vec3::new(0.0, 100.0, 100.0);
     camera.transform.look_at(Vec3::ZERO, Vec3::Y);
 
     let mut dir_light = DirectionalLightBundle::default();
@@ -56,9 +62,10 @@ fn spawn_playground(world: &mut World, commands: &mut CommandQueue, assets: &mut
     dir_light.transform.rotate_y(-consts::PI / 4.0);
     dir_light.transform.rotate_x(-consts::PI / 4.0);
 
-    let mut sprite = Sprite3DBundle::default();
-    sprite.sprite.rect = Rect::new(0.0, 0.0, 64.0, 64.0);
-    sprite.material = human_mat;
+    let mut player1 = AnimationBundle::default();
+    player1.animations = player_animations;
+    player1.animation_state.animation_index = 0;
+    player1.material = human_mat;
 
     // Spawn
     let mut commands = Commands::new(commands, world);
@@ -66,5 +73,10 @@ fn spawn_playground(world: &mut World, commands: &mut CommandQueue, assets: &mut
     commands.spawn((plane, Name::new("Plane")));
     commands.spawn((camera, Name::new("Camera")));
     commands.spawn((dir_light, Name::new("Dir Light")));
-    commands.spawn((sprite, aabb, Anchor::Center, Name::new("Sprite")));
+    commands.spawn((player1, aabb, Anchor::Center, Name::new("Sprite")));
+}
+
+
+fn spawn_player(commands: &mut Commands, assets: &mut AssetBatch) {
+
 }

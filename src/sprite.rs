@@ -20,7 +20,7 @@ pub fn sprite_plugin(app: &mut App) {
 
 
 // Collects sprite entities into the SpriteBatches resource.
-fn batch_sprites(
+pub fn batch_sprites(
     sprites: Query<(&Sprite3D, &GlobalTransform, &Handle<StandardMaterial>, &ViewVisibility, Option<&Anchor>)>,
     mut batches: ResMut<SpriteBatches>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -39,13 +39,15 @@ fn batch_sprites(
             Some(anchor) => anchor.as_vec() * sprite_size,
             None => Vec2::new(0.5, 0.5) * sprite_size,
         };
+        let sprite_offset = sprite_size * (sprite_origin - 0.5);
+        let sprite_offset = Affine3A::from_translation(sprite_offset.extend(1.0));
+        let sprite_transf = sprite_transf.affine() * sprite_offset;
         batches.batch_sprite(
             sprite,
             sprite_mat_handle,
             sprite_size,
             sprite_image_size,
-            sprite_origin,
-            sprite_transf.affine(),
+            sprite_transf,
             &mut meshes,
             &mut commands,
         );
@@ -94,7 +96,6 @@ impl SpriteBatches {
         sprite_mat: &Handle<StandardMaterial>,
         sprite_size: Vec2,
         sprite_image_size: Vec2,
-        sprite_origin: Vec2,
         sprite_transf: Affine3A,
         meshes: &mut Assets<Mesh>,
         commands: &mut Commands,
@@ -104,12 +105,10 @@ impl SpriteBatches {
         let mesh = meshes.get_mut(mesh_handle).unwrap();
 
         // Generate sprite vertex data
-        let sprite_offset = sprite_size * (sprite_origin - 0.5);;
-        let sprite_uvs = get_rect_points(flip(sprite.rect)).map(|point| point / sprite_image_size);
-        let sprite_positions = get_rect_points(sprite.rect)
-            .map(|point2d| point2d.extend(0.0))
-            .map(|point3d| point3d + sprite_offset.extend(0.0))
-            .map(|point3d| sprite_transf.transform_point3(point3d));
+        let sprite_uvs = calc_region(sprite.rect).map(|point| point / sprite_image_size);
+        let sprite_positions = calc_positions(sprite_size)
+            .map(|pos2| pos2.extend(0.0))
+            .map(|pos3| sprite_transf.transform_point3(pos3));
         let sprite_normal = {
             let origin = sprite_positions[0];
             let a = sprite_positions[1] - origin;
@@ -206,18 +205,22 @@ fn get_uv_values(mesh: &mut Mesh) -> &mut Vec<[f32; 2]> {
 }
 
 #[inline]
-fn flip(mut rect: Rect) -> Rect {
-    std::mem::swap(&mut rect.min.y, &mut rect.max.y);
-    rect
-}
-
-#[inline]
-fn get_rect_points(rect: Rect) -> [Vec2; 4] {
+fn calc_region(rect: Rect) -> [Vec2; 4] {
     [
+        Vec2::new(rect.min.x, rect.max.y),
         Vec2::new(rect.min.x, rect.min.y),
         Vec2::new(rect.max.x, rect.min.y),
         Vec2::new(rect.max.x, rect.max.y),
-        Vec2::new(rect.min.x, rect.max.y),
+    ]
+}
+
+#[inline]
+fn calc_positions(size: Vec2) -> [Vec2; 4] {
+    [
+        Vec2::new(0.0, 0.0),
+        Vec2::new(0.0, size.y),
+        Vec2::new(size.x, size.y),
+        Vec2::new(size.x, 0.0),
     ]
 }
 

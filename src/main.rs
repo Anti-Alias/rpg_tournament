@@ -1,11 +1,15 @@
 mod screen;
 mod sprite;
+mod animation;
+mod asset;
 mod task;
 mod ui;
 mod dsl;
 mod spawn;
 mod ext;
 
+use animation::animation_plugin;
+use asset::asset_extension_plugin;
 use bevy::window::WindowResolution;
 #[cfg(feature="inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -33,8 +37,10 @@ fn main() {
             default_plugins,
             task_plugin,
             sprite_plugin,
+            animation_plugin,
             screen_plugin,
             ui_plugin,
+            asset_extension_plugin,
             #[cfg(feature="inspector")]
             WorldInspectorPlugin::new(),
         ))
@@ -55,7 +61,7 @@ pub enum GameState {
 
 fn start_game(mut commands: Commands, mut scale: ResMut<UiScale>) {
     scale.0 = 2.0;
-    let mut camera = Camera2dBundle::default();
-    camera.camera.order = 1;
-    commands.spawn(( camera, Keep));
+    let mut ui_camera = Camera2dBundle::default();
+    ui_camera.camera.order = 1;
+    commands.spawn((ui_camera, Keep));
 }
