@@ -24,7 +24,7 @@ fn spawn_title_menu(
     let new_game: Entity;
     let cont: Entity;
     let options: Entity;
-    node(c_title_root, t); insert(Name::new("Title UI"), t); begin(t);
+    node(c_root, t); insert(Name::new("Title UI"), t); begin(t);
         menu_button("New Game", assets, t); new_game=last(t);
         menu_button("Continue", assets, t); cont=last(t);
         menu_button("Options", assets, t);  options=last(t);
@@ -71,7 +71,7 @@ impl Task for ShowDialog {
     }
 }
 
-pub fn c_title_root(b: &mut NodeBundle) {
+pub fn c_root(b: &mut NodeBundle) {
     let s = &mut b.style;
     s.display = Display::Flex;
     s.flex_direction = FlexDirection::Column;

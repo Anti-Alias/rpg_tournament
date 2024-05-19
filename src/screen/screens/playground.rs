@@ -7,10 +7,16 @@ use bevy::sprite::Anchor;
 
 use crate::animation::AnimationBundle;
 use crate::asset::CommonAssets;
+use crate::ext::EntityCommandsExt;
+use crate::ext::WorldExt;
+use crate::screen::FadeToScreen;
+use crate::screen::ScreenState;
 use crate::spawn::AssetBatch;
 use crate::ext::CommandsExt;
 use crate::screen::ScreenEvent;
 use crate::task::Start;
+use crate::ui::*;
+use crate::dsl::*;
 
 
 pub fn setup_playground_screen(mut commands: Commands) {
@@ -55,10 +61,35 @@ fn spawn_playground(world: &mut World, commands: &mut CommandQueue, assets: &mut
     player.animation_state.animation_index = 0;
     player.material = assets.load("human/material.ron.stdmat");
 
-    // Spawn
+    // Spawn game objects
     let mut commands = Commands::new(commands, world);
     let aabb = Aabb { center: Vec3A::ZERO, half_extents: Vec3A::splat(32.0) };
     commands.spawn((plane, Name::new("Plane")));
     commands.spawn((dir_light, Name::new("Dir Light")));
     commands.spawn((player, aabb, Anchor::Center, Name::new("Sprite")));
+
+    // Spawn UI
+    let t = &mut TreeBuilder::root(&mut commands);
+    let back_button: Entity;
+    node(c_root, t); insert(Name::new("Title UI"), t); begin(t);
+        menu_button("Back", assets, t); back_button=last(t);
+    end(t);
+
+    // UI handlers
+    commands.entity(back_button).on_press(|world| {
+        let task = FadeToScreen(ScreenState::Title);
+        world.spawn_task(task);
+    });
+}
+
+
+pub fn c_root(b: &mut NodeBundle) {
+    let s = &mut b.style;
+    s.display = Display::Flex;
+    s.flex_direction = FlexDirection::Column;
+    s.justify_content = JustifyContent::End;
+    s.align_items = AlignItems::Center;
+    s.width = Val::Percent(100.0);
+    s.height = Val::Percent(100.0);
+    b.background_color = Color::NONE.into();
 }
