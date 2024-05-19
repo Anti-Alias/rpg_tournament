@@ -1,0 +1,8 @@
+(
+    base_color: RgbaLinear(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0),
+    base_color_texture: Some("human/sheets/a.png"),
+    perceptual_roughness: 1.0,
+    alpha_mode: Mask(0.5),
+    cull_mode: None,
+    double_sided: true,
+)

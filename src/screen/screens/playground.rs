@@ -28,14 +28,6 @@ fn spawn_playground(world: &mut World, commands: &mut CommandQueue, assets: &mut
         base_color: Color::GRAY,
         ..default()
     });
-    let human_mat = materials.add(StandardMaterial {
-        base_color_texture: Some(assets.load("human/sheets/a.png")),
-        perceptual_roughness: 1.0,
-        alpha_mode: AlphaMode::Mask(0.5),
-        cull_mode: None,
-        double_sided: true,
-        ..default()
-    });
 
     // Meshes
     let mut meshes = world.resource_mut::<Assets<Mesh>>();
@@ -65,7 +57,7 @@ fn spawn_playground(world: &mut World, commands: &mut CommandQueue, assets: &mut
     let mut player1 = AnimationBundle::default();
     player1.animations = player_animations;
     player1.animation_state.animation_index = 0;
-    player1.material = human_mat;
+    player1.material = assets.load("human/material.ron.stdmat");
 
     // Spawn
     let mut commands = Commands::new(commands, world);
