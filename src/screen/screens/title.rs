@@ -54,16 +54,10 @@ impl Task for ShowDialog {
         const WAIT_TIME: u64 = 1000;
         let diag_container: Entity = world.spawn_empty().id();
         let text: Entity = world.spawn_empty().id();
-        tq.spawn_dialog("Still not much to see here...", diag_container, text);
+        tq.spawn_dialog("Basic sprite rendering and animations now work.", diag_container, text);
         tq.wait_on_text(text);
         tq.wait_millis(WAIT_TIME);
-        tq.set_dialog_message("Only the 'Options' and 'Continue' buttons work...", text);
-        tq.wait_on_text(text);
-        tq.wait_millis(WAIT_TIME);
-        tq.set_dialog_message("I created this demo to test a few features, but...", text);
-        tq.wait_on_text(text);
-        tq.wait_millis(WAIT_TIME);
-        tq.set_dialog_message("There's not much to see as of yet.", text);
+        tq.set_dialog_message("Click on \"New Game\" to try it out.", text);
         tq.wait_on_text(text);
         tq.wait_millis(WAIT_TIME);
         tq.despawn(text, true, true);
