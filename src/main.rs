@@ -12,6 +12,7 @@ use std::time::Duration;
 
 use animation::animation_plugin;
 use asset::asset_extension_plugin;
+use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::window::WindowResolution;
 #[cfg(feature="inspector")]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -67,11 +68,13 @@ fn start_game(mut commands: Commands, mut scale: ResMut<UiScale>) {
 
     let mut camera_2d = Camera2dBundle::default();
     camera_2d.camera.order = 1;
+    camera_2d.tonemapping = Tonemapping::None;
     commands.spawn((camera_2d, Keep));
     
     let mut camera_3d = Camera3dBundle::default();
     camera_3d.transform.translation = Vec3::new(0.0, 100.0, 100.0);
     camera_3d.transform.look_at(Vec3::ZERO, Vec3::Y);
+    camera_3d.tonemapping = Tonemapping::None;
     commands.spawn((camera_3d, Keep));
 
     commands.spawn_task(FadeInitial);

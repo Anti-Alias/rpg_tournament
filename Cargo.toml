@@ -4,7 +4,22 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.13.2", features = ["webgpu"] }
+bevy = { version = "0.13.2", default-features = false, features = [
+    "webgpu",
+    "bevy_asset",
+    "bevy_audio",
+    "bevy_core_pipeline",
+    "bevy_gilrs",
+    "bevy_pbr",
+    "bevy_render",
+    "bevy_text",
+    "bevy_ui",
+    "bevy_winit",
+    "multi-threaded",
+    "png",
+    "vorbis",
+    "x11",
+] }
 ron = "0.8.1"
 thiserror = "1.0.61"
 serde = { version = "1.0.202", features = ["serde_derive"] }
