@@ -11,15 +11,14 @@ echo "";
 
 echo "Compiling wasm binary"
 cargo build \
-    --release \
-    --no-default-features \
     --target wasm32-unknown-unknown \
+    --profile wasm-release
 
 echo "Deploying wasm binary"
 wasm-bindgen --no-typescript --target web \
     --out-dir "$GAME_DIR" \
     --out-name "rpg_tournament" \
-    ./target/wasm32-unknown-unknown/release/rpg_tournament.wasm
+    ./target/wasm32-unknown-unknown/wasm-release/rpg_tournament.wasm
 
 echo "Copying assets into '$ASSETS_DIR'"
 rm -r "$ASSETS_DIR" 2> /dev/null
