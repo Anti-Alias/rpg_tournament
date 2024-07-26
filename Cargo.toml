@@ -4,3 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bevy = { version = "0.14", features = ["dynamic_linking"] }
+bitflags = "2.6.0"
+thiserror = "1.0.63"
+tiled-parser = { git="https://github.com/Anti-Alias/tiled-parser.git", branch="master" }
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

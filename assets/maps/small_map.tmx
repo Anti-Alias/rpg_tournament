@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="11" height="10" tilewidth="16" tileheight="16" infinite="0" nextlayerid="24" nextobjectid="26">
+ <properties>
+  <property name="int_prop" type="int" value="3"/>
+ </properties>
+ <tileset firstgid="1" source="tilesets/spring_forest.tsx"/>
+ <tileset firstgid="673" source="tilesets/shape.tsx"/>
+ <tileset firstgid="1697" source="tilesets/spring_trees.tsx"/>
+ <tileset firstgid="1700" name="spring_forest_internal" tilewidth="16" tileheight="16" tilecount="672" columns="32">
+  <image source="tilesets/spring_forest.png" width="512" height="336"/>
+ </tileset>
+ <group id="2" name="lower">
+  <layer id="1" name="0" width="11" height="10">
+   <data encoding="base64" compression="zstd">
+   KLUv/WC4AA0DANDDAAAAIYFBAAAAoWFBoYFhw2FBIYFhw0GBoSegEF85wAIiwR4vesGeuIjRPcX1vja4s4TbyGDQ3Gt4tr/kc9YeZU8rOMLU/WgKBowlc3znOI+PVTwMmHtl3MOJ3bYHVAY=
+  </data>
+  </layer>
+ </group>
+ <group id="3" name="upper" offsetx="0.5" offsety="-2.5">
+  <layer id="4" name="0" width="11" height="10">
+   <data encoding="base64" compression="zstd">
+   KLUv/WC4ADUEAGLHEh6gOXMdDuHZHyLBZgNztPbHXjN36A0NwgagpY2hSQH/yCGPOxpnLK544ogfDC98cEHggF+3Tn1i0qP23HOQe6+eprWzE644Z5YnAxqgYGi8PC1jgIJD1caH+k5ubChryFPZjNFkH4wfzuo8OTjvPDrbvd+z+s4RTzgDkc6xFHvrEFER
+  </data>
+  </layer>
+ </group>
+</map>
