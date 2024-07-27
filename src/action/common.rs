@@ -88,14 +88,6 @@ where
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Default, Debug)]
-pub struct Print(pub &'static str);
-impl Action for Print {
-    fn start(&mut self, _env: &mut StartEnv) {
-        println!("{}", self.0);
-    }
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Default, Debug)]
 pub struct Quit;
 impl Action for Quit {
     fn run(&mut self, _env: &mut RunEnv) -> RunStatus {

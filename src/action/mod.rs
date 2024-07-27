@@ -229,15 +229,13 @@ pub struct QuitAction(pub ActionKind);
 
 #[derive(Component, Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum ActionKind {
-    PrintDisclaimer,
     Cutscene,
 }
 
 impl ActionKind {
     pub fn to_action_queue(self) -> ActionQueue {
         match self {
-            ActionKind::PrintDisclaimer => ActionQueue::from(common::Print("This is a disclaimer")),
-            ActionKind::Cutscene        => ActionQueue::from(common::cutscene),
+            ActionKind::Cutscene => ActionQueue::from(common::cutscene),
         }
     }
 }

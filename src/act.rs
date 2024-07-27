@@ -3,17 +3,21 @@
 use std::time::Duration;
 use extension_trait::extension_trait;
 use crate::action::{StartEnv, EndEnv};
-use crate::action::common::{End, Print, Quit, Start, Wait};
+use crate::action::common::{End, Quit, Start, Wait};
 
 #[extension_trait]
 pub impl<'a> StartEnvExt for StartEnv<'a> {
     
+    fn print(&mut self, str: &'static str) {
+        self.start(move |_env| println!("{str}"));
+    }
+
+    fn wait(&mut self, duration: Duration) {
+        self.push(Wait(duration));
+    }
+
     fn wait_millis(&mut self, millis: u64) {
         self.push(Wait(Duration::from_millis(millis)));
-    }
-    
-    fn print(&mut self, str: &'static str) {
-        self.push(Print(str));
     }
     
     fn wait_secs(&mut self, seconds: f32) {
