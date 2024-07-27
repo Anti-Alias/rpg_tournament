@@ -7,7 +7,8 @@ use std::str::FromStr;
 use thiserror::*;
 use tiled_parser as tp;
 use bevy::prelude::*;
-use crate::{EntityIndex, Environment};
+use bevy::log;
+use crate::EntityIndex;
 
 
 /// A tiled map.
@@ -31,59 +32,32 @@ pub struct Tileset {
     pub image: Handle<Image>,
 }
 
-/// Refers to a map that's either loading, or finished loading and has spawned.
-#[derive(Clone, Debug)]
-pub enum MapData {
-    Loading { handle: Handle<Map>, position: Vec3 },
-    Loaded { entity: Entity },
+/// Monitors loading [`Map`] entities, and finalizes them once they finish loading.
+pub fn finish_maps(
+    mut commands: Commands,
+    mut map_entities: Query<(Entity, &Handle<Map>)>,
+    map_assets: Res<Assets<Map>>,
+    tileset_assets: Res<Assets<Tileset>>,
+    image_assets: Res<Assets<Image>>,
+    asset_server: Res<AssetServer>,
+) {
+    for (map_entity, map_handle) in &mut map_entities {
+        if asset_server.is_loaded_with_dependencies(map_handle) {
+            finish_map(&mut commands, map_entity, map_handle, &map_assets, &tileset_assets, &image_assets);
+        }
+    }
 }
 
 /// Monitors loading [`Map`]s and spawns them when they finish loading.
-pub fn finish_spawning_maps(
-    mut commands: Commands,
-    mut entities: ResMut<EntityIndex>,
-    assets: Res<AssetServer>,
-    maps: Res<Assets<Map>>,
-    tilesets: Res<Assets<Tileset>>,
-    images: Res<Assets<Image>>,
-) {
-    for map_data in &mut entities.maps.values_mut() {
-        let (map_handle, _position) = match map_data {
-            MapData::Loading { handle, position } => (handle, position),
-            MapData::Loaded { .. } => continue,
-        };
-        if !assets.is_loaded_with_dependencies(&*map_handle) { continue };
-        let map_entity = spawn_map(&mut commands, &map_handle, &maps, &tilesets, &images);
-        *map_data = MapData::Loaded { entity: map_entity };
-        println!("Finished spawning map");
-    }
-}
-
-
-/// Enqueues the spawning of a [`Map`].
-/// Once loaded, map entity will be spawned.
-pub fn start_spawning_map(
-    name: &'static str,
-    file: &'static str,
-    position: Vec3,
-    env: Environment,
-) {
-    let (entities, assets) = (env.entities, env.assets);
-    if entities.maps.contains_key(name) {
-        panic!("Map {name} already spawned");
-    }
-    entities.maps.insert(name, MapData::Loading { handle: assets.load(file), position });
-    println!("Spawning map");
-}
-
-fn spawn_map(
+fn finish_map(
     commands: &mut Commands,
+    map_entity: Entity,
     map_handle: &Handle<Map>,
-    maps: &Assets<Map>,
-    tilesets: &Assets<Tileset>,
-    images: &Assets<Image>,
-) -> Entity {
-    let map = maps.get(map_handle).unwrap();
+    map_assets: &Assets<Map>,
+    tileset_assets: &Assets<Tileset>,
+    image_assets: &Assets<Image>,
+) {
+    let map = map_assets.get(map_handle).unwrap();
     for group_layer in map.map.layers() {
         let group_layer = match group_layer.as_group_layer() {
             Some(group_layer) => group_layer,
@@ -91,22 +65,54 @@ fn spawn_map(
         };
         
     }
-    todo!()
+    commands.entity(map_entity).remove::<Handle<Map>>();
+    log::info!("Finished map");
+}
+
+/// Enqueues the spawning of a [`Map`].
+/// Once loaded, map entity will be spawned.
+pub fn spawn_map(
+    trigger: Trigger<SpawnMap>,
+    mut entities: ResMut<EntityIndex>,
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+) {
+    let event = trigger.event();
+    let (map_name, map_file) = (event.name, event.file);
+    if entities.maps.contains_key(map_name) {
+        panic!("Map '{}' already spawned", map_name);
+    }
+    let map_handle: Handle<Map> = assets.load(map_file);
+    let map_entity = commands.spawn(map_handle).id();
+    entities.maps.insert(map_name, map_entity);
+    log::info!("Spawned map `{map_name}`, file: `{map_file}`");
 }
 
 /// Despawns a [`Map`].
-pub fn despawn_map(name: &str, env: Environment) {
-    let (entities, commands) = (env.entities, env.commands);
-    if !entities.maps.contains_key(name) {
-        panic!("Map {name} not spawned");
-    }
-    let map_data = entities.maps.remove(name);
-    match map_data {
-        Some(MapData::Loading { .. })       => {},
-        Some(MapData::Loaded { entity })    => commands.entity(entity).despawn_recursive(),
-        None                                => panic!("Map {name} not spawned"),
+pub fn despawn_map(
+    trigger: Trigger<DespawnMap>,
+    mut entities: ResMut<EntityIndex>,
+    mut commands: Commands,
+) {
+    let map_name = trigger.event().name;
+    let map_entity = match entities.maps.remove(map_name) {
+        Some(entity) => entity,
+        None => panic!("Map '{}' not spawned", map_name),
     };
-    println!("Despawned map");
+    commands.entity(map_entity).despawn_recursive();
+    log::info!("Despawned map '{map_name}'");
+}
+
+#[derive(Event, Copy, Clone, PartialEq, Debug)]
+pub struct SpawnMap {
+    pub name: &'static str,
+    pub file: &'static str,
+    pub position: Vec3,
+}
+
+#[derive(Event, Copy, Clone, Eq, PartialEq, Debug)]
+pub struct DespawnMap {
+    pub name: &'static str,
 }
 
 

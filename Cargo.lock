@@ -1701,6 +1701,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "extension-trait"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd65f1b59dd22d680c7a626cc4a000c1e03d241c51c3e034d2bc9f1e90734f9b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.72",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3145,6 +3156,8 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bitflags 2.6.0",
+ "extension-trait",
+ "smallvec",
  "thiserror",
  "tiled-parser",
 ]
