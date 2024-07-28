@@ -2,7 +2,6 @@ mod loader;
 
 use bitflags::bitflags;
 pub use loader::*;
-
 use std::str::FromStr;
 use thiserror::*;
 use tiled_parser as tp;
@@ -32,6 +31,40 @@ pub struct Tileset {
     pub image: Handle<Image>,
 }
 
+/// Spawns a [`Map`] entity.
+/// Map contents load asynchronously.
+pub fn spawn_map(
+    trigger: Trigger<SpawnMapMsg>,
+    mut entities: ResMut<EntityIndex>,
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+) {
+    let event = trigger.event();
+    let (map_name, map_file) = (event.name, event.file);
+    if entities.maps.contains_key(map_name) {
+        panic!("Map '{}' already spawned", map_name);
+    }
+    let map_handle: Handle<Map> = assets.load(map_file);
+    let map_entity = commands.spawn(map_handle).id();
+    entities.maps.insert(map_name, map_entity);
+    log::info!("Spawned map `{map_name}`, file: `{map_file}`");
+}
+
+/// Despawns a [`Map`].
+pub fn despawn_map(
+    trigger: Trigger<DespawnMapMsg>,
+    mut entities: ResMut<EntityIndex>,
+    mut commands: Commands,
+) {
+    let map_name = trigger.event().name;
+    let map_entity = match entities.maps.remove(map_name) {
+        Some(entity) => entity,
+        None => panic!("Map '{}' not spawned", map_name),
+    };
+    commands.entity(map_entity).despawn_recursive();
+    log::info!("Despawned map '{map_name}'");
+}
+
 /// Monitors loading [`Map`] entities, and finalizes them once they finish loading.
 pub fn finish_maps(
     mut commands: Commands,
@@ -48,7 +81,6 @@ pub fn finish_maps(
     }
 }
 
-/// Monitors loading [`Map`]s and spawns them when they finish loading.
 fn finish_map(
     commands: &mut Commands,
     map_entity: Entity,
@@ -67,52 +99,6 @@ fn finish_map(
     }
     commands.entity(map_entity).remove::<Handle<Map>>();
     log::info!("Finished map");
-}
-
-/// Enqueues the spawning of a [`Map`].
-/// Once loaded, map entity will be spawned.
-pub fn spawn_map(
-    trigger: Trigger<SpawnMap>,
-    mut entities: ResMut<EntityIndex>,
-    mut commands: Commands,
-    assets: Res<AssetServer>,
-) {
-    let event = trigger.event();
-    let (map_name, map_file) = (event.name, event.file);
-    if entities.maps.contains_key(map_name) {
-        panic!("Map '{}' already spawned", map_name);
-    }
-    let map_handle: Handle<Map> = assets.load(map_file);
-    let map_entity = commands.spawn(map_handle).id();
-    entities.maps.insert(map_name, map_entity);
-    log::info!("Spawned map `{map_name}`, file: `{map_file}`");
-}
-
-/// Despawns a [`Map`].
-pub fn despawn_map(
-    trigger: Trigger<DespawnMap>,
-    mut entities: ResMut<EntityIndex>,
-    mut commands: Commands,
-) {
-    let map_name = trigger.event().name;
-    let map_entity = match entities.maps.remove(map_name) {
-        Some(entity) => entity,
-        None => panic!("Map '{}' not spawned", map_name),
-    };
-    commands.entity(map_entity).despawn_recursive();
-    log::info!("Despawned map '{map_name}'");
-}
-
-#[derive(Event, Copy, Clone, PartialEq, Debug)]
-pub struct SpawnMap {
-    pub name: &'static str,
-    pub file: &'static str,
-    pub position: Vec3,
-}
-
-#[derive(Event, Copy, Clone, Eq, PartialEq, Debug)]
-pub struct DespawnMap {
-    pub name: &'static str,
 }
 
 
@@ -185,4 +171,16 @@ bitflags! {
 pub enum MapSpawningError {
     #[error("Invalid tile shape")]
     InvalidTileShape,
+}
+
+#[derive(Event, Copy, Clone, PartialEq, Debug)]
+pub struct SpawnMapMsg {
+    pub name: &'static str,
+    pub file: &'static str,
+    pub position: Vec3,
+}
+
+#[derive(Event, Copy, Clone, Eq, PartialEq, Debug)]
+pub struct DespawnMapMsg {
+    pub name: &'static str,
 }
