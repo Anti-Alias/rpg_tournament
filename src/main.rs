@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use rpg_tournament::{ActionKind, GamePlugin, RunAction, SpawnMapMsg};
+use rpg_tournament::{ActionKind, GamePlugin};
+use rpg_tournament::messages::{InitOverworld, SpawnMap, RunAction};
 
 fn main() {
     App::new()
@@ -14,9 +15,10 @@ fn main() {
 
 fn startup(mut commands: Commands) {
     commands.trigger(RunAction(ActionKind::Cutscene));
-    commands.trigger(SpawnMapMsg {
+    commands.trigger(InitOverworld);
+    commands.trigger(SpawnMap {
         name: "Map",
-        file: "maps/map.tmx",
+        file: "maps/small_map.tmx",
         position: Vec3::ZERO
     });
 }

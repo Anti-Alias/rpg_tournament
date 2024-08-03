@@ -1,7 +1,7 @@
 use std::time::Duration;
 use bevy::prelude::*;
 use crate::act::StartEnvExt;
-use crate::{Action, EndEnv, RunEnv, RunStatus, StartEnv};
+use crate::action::{Action, EndEnv, RunEnv, RunStatus, StartEnv};
 
 #[derive(Copy, Clone, Eq, PartialEq, Default, Debug)]
 pub struct Wait(pub Duration);

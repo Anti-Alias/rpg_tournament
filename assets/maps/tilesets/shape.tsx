@@ -101,13 +101,13 @@
  <tile id="135">
   <properties>
    <property name="reset" type="bool" value="true"/>
-   <property name="shape" value="wall-sw"/>
+   <property name="shape" value="wall-ne"/>
   </properties>
  </tile>
  <tile id="137">
   <properties>
    <property name="reset" type="bool" value="true"/>
-   <property name="shape" value="wall-se"/>
+   <property name="shape" value="wall-nw"/>
   </properties>
  </tile>
  <tile id="140">

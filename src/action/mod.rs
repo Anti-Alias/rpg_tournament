@@ -221,12 +221,6 @@ pub enum OnFinish {
     DespawnRecursive,
 }
 
-#[derive(Event, Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub struct RunAction(pub ActionKind);
-
-#[derive(Event, Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub struct QuitAction(pub ActionKind);
-
 #[derive(Component, Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum ActionKind {
     Cutscene,
@@ -241,7 +235,7 @@ impl ActionKind {
 }
 
 pub fn run_action(
-    trigger: Trigger<RunAction>,
+    trigger: Trigger<messages::RunAction>,
     mut commands: Commands,
 ) {
     let action_kind = trigger.event().0;
@@ -250,7 +244,7 @@ pub fn run_action(
 }
 
 pub fn quit_action(
-    trigger: Trigger<QuitAction>,
+    trigger: Trigger<messages::QuitAction>,
     mut commands: Commands,
     mut action_queues: Query<(Entity, &mut ActionQueue, &ActionKind)>,
 ) {
@@ -305,4 +299,14 @@ pub fn run_action_queues(
             },
         }
     }
+}
+
+pub mod messages {
+    use bevy::prelude::*;
+    use super::ActionKind;
+    
+    #[derive(Event, Copy, Clone, Eq, PartialEq, Hash, Debug)]
+    pub struct RunAction(pub ActionKind);
+    #[derive(Event, Copy, Clone, Eq, PartialEq, Hash, Debug)]
+    pub struct QuitAction(pub ActionKind);
 }
