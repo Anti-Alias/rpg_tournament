@@ -3,7 +3,11 @@ mod action;
 mod act;
 mod overworld;
 mod camera;
+mod pixel;
 
+use bevy::pbr::PbrProjectionPlugin;
+use bevy::render::camera::CameraProjectionPlugin;
+use camera::DualProjection;
 use map::*;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
@@ -15,17 +19,20 @@ pub use action::ActionKind;
 pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()));
-        app.init_state::<Screen>();
+        app.add_plugins((
+            DefaultPlugins.set(ImagePlugin::default_nearest()),
+            CameraProjectionPlugin::<DualProjection>::default(),
+            PbrProjectionPlugin::<DualProjection>::default(),
+            pixel::PixelPlugin::default(),
+        ));
+        app.init_state::<ScreenStates>();
+        app.init_state::<DebugStates>();
         app.init_asset::<Map>();
         app.init_asset::<Tileset>();
         app.init_asset_loader::<MapLoader>();
         app.init_asset_loader::<TilesetLoader>();
         app.init_resource::<EntityIndex>();
-        app.insert_resource(AmbientLight {
-            color: Color::WHITE,
-            brightness: 100.0,
-        });
+        app.insert_resource(AmbientLight { color: Color::WHITE, brightness: 400.0, });
         app.observe(overworld::init_overworld);
         app.observe(action::run_action);
         app.observe(action::quit_action);
@@ -34,13 +41,21 @@ impl Plugin for GamePlugin {
         app.add_systems(Update, (
             action::run_action_queues,
             map::finish_maps.after(action::run_action_queues),
-            camera::control_flycam,
+            camera::control_flycam.run_if(in_state(DebugStates::Enabled)),
         ));
     }
 }
 
+
 #[derive(States, Clone, Eq, PartialEq, Hash, Default, Debug)]
-pub enum Screen {
+pub enum DebugStates {
+    #[default]
+    Enabled,
+    Disabled,
+}
+
+#[derive(States, Clone, Eq, PartialEq, Hash, Default, Debug)]
+pub enum ScreenStates {
     #[default]
     Title,
     Overworld,

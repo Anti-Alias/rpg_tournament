@@ -135,32 +135,30 @@ fn finish_map(
                     let tile_coords = (tile_x, tile_y);
 
                     // Gets tile and tile meta
-                    let Some(tile) = layer.tiles.get(&tile_coords) else {
-                        gstrip.left.z -= TH;
-                        gstrip.right.z -= TH;
-                        continue;
-                    };
+                    let tile = layer.tiles.get(&tile_coords);
                     let tile_geom = group_meta.graphics_geoms.get(&tile_coords).copied().unwrap_or_default();
                     let tile_quad_info = tile_geom.shape.quad_info();
+                    let gstrip_next = gstrip.next(tile_geom.shape);
 
                     // Advances strip and generates quad vertices from tile
-                    let gstrip_next = gstrip.next(tile_geom.shape);
-                    let tile_vertices = match tile_geom.shape.is_flipped() {
-                        false => GraphicsVertex::quad(
-                            [gstrip.left, gstrip.right, gstrip_next.right, gstrip_next.left],
-                            [I16Vec2::new(tile.uv1.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv1.y)],
-                            vert_offset,
-                        ),
-                        true => GraphicsVertex::quad(
-                            [gstrip.right, gstrip_next.right, gstrip_next.left, gstrip.left],
-                            [I16Vec2::new(tile.uv2.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv2.y)],
-                            vert_offset,
-                        ),
-                    };
+                    if let Some(tile) = tile {
+                        let tile_vertices = match tile_geom.shape.is_flipped() {
+                            false => GraphicsVertex::quad(
+                                [gstrip.left, gstrip.right, gstrip_next.right, gstrip_next.left],
+                                [I16Vec2::new(tile.uv1.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv1.y)],
+                                vert_offset,
+                            ),
+                            true => GraphicsVertex::quad(
+                                [gstrip.right, gstrip_next.right, gstrip_next.left, gstrip.left],
+                                [I16Vec2::new(tile.uv2.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv2.y)],
+                                vert_offset,
+                            ),
+                        };
 
-                    // Pushes quad to relevant mesh
-                    let gmesh = &mut gmeshes[tile.tileset_idx];
-                    gmesh.push_quad(tile_vertices);
+                        // Pushes quad to relevant mesh
+                        let gmesh = &mut gmeshes[tile.tileset_idx];
+                        gmesh.push_quad(tile_vertices);
+                    }
 
                     // Pushes northern cliff vertices
                     if tile_geom.cliff.contains(Cliff::NORTH) {
