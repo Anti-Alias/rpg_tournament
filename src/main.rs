@@ -4,10 +4,7 @@ use rpg_tournament::messages::{InitOverworld, SpawnMap, RunAction};
 
 fn main() {
     App::new()
-        .add_plugins((
-            DefaultPlugins,
-            GamePlugin
-        ))
+        .add_plugins(GamePlugin)
         .add_systems(Startup, startup)
         .run();
 }

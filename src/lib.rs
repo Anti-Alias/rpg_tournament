@@ -15,12 +15,17 @@ pub use action::ActionKind;
 pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
+        app.add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()));
         app.init_state::<Screen>();
         app.init_asset::<Map>();
         app.init_asset::<Tileset>();
         app.init_asset_loader::<MapLoader>();
         app.init_asset_loader::<TilesetLoader>();
         app.init_resource::<EntityIndex>();
+        app.insert_resource(AmbientLight {
+            color: Color::WHITE,
+            brightness: 100.0,
+        });
         app.observe(overworld::init_overworld);
         app.observe(action::run_action);
         app.observe(action::quit_action);

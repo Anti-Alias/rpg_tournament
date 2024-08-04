@@ -14,10 +14,10 @@ pub struct Flycam {
 impl Default for Flycam {
     fn default() -> Self {
         Self {
-            speed: 0.1,
+            speed: 256.0,
             yaw: 0.0,
-            pitch: 0.0,
-            sensitivity: 0.01,
+            pitch: -PI/4.0,
+            sensitivity: 0.005,
         }
     }
 }
@@ -31,45 +31,44 @@ pub fn control_flycam(
     mut mouse_motions: EventReader<MouseMotion>,
     time: Res<Time>,
 ) {
-
-    // Moves flycams
-    let secs = time.elapsed_seconds();
+    let secs = time.delta_seconds();
     for (mut transform, mut flycam) in &mut flycams {
+
+        // Rotates flycam
         if mouse.pressed(MouseButton::Middle) {
             for mouse_motion in mouse_motions.read() {
                 flycam.yaw -= mouse_motion.delta.x * flycam.sensitivity;
                 flycam.pitch -= mouse_motion.delta.y * flycam.sensitivity;
                 flycam.pitch = flycam.pitch.min(PI/2.0 - EPS).max(-PI/2.0 + EPS);
             }
+            let look_dir = Quat::from_euler(EulerRot::YXZ, flycam.yaw, flycam.pitch, 0.0) * Vec3::NEG_Z;
+            *transform = transform.looking_to(look_dir, Vec3::Y);
         }
-        let rot = Quat::from_euler(EulerRot::YXZ, flycam.yaw, flycam.pitch, 0.0);
-        let forwards_look = rot * Vec3::NEG_Z;
 
-        let move_rot = Quat::from_euler(EulerRot::YXZ, flycam.yaw, 0.0, 0.0);
-        let forwards_move = move_rot * Vec3::NEG_Z;
-        let right_move = move_rot * Vec3::X;
-        let up_move = Vec3::Y;
-
+        // Moves flycam
+        let rotation = Quat::from_euler(EulerRot::YXZ, flycam.yaw, 0.0, 0.0);
+        let forwards = rotation * Vec3::NEG_Z;
+        let right = rotation * Vec3::X;
+        let up = Vec3::Y;
         let mut movement = Vec3::ZERO;
         if keyboard.pressed(KeyCode::KeyA) {
-            movement -= right_move * flycam.speed * secs;
+            movement -= right * flycam.speed * secs;
         }
         if keyboard.pressed(KeyCode::KeyD) {
-            movement += right_move * flycam.speed * secs;
+            movement += right * flycam.speed * secs;
         }
         if keyboard.pressed(KeyCode::KeyW) {
-            movement += forwards_move * flycam.speed * secs;
+            movement += forwards * flycam.speed * secs;
         }
         if keyboard.pressed(KeyCode::KeyS) {
-            movement -= forwards_move * flycam.speed * secs;
+            movement -= forwards * flycam.speed * secs;
         }
         if keyboard.pressed(KeyCode::KeyE) {
-            movement += up_move * flycam.speed * secs;
+            movement += up * flycam.speed * secs;
         }
         if keyboard.pressed(KeyCode::KeyQ) {
-            movement -= up_move * flycam.speed * secs;
+            movement -= up * flycam.speed * secs;
         }
         transform.translation += movement;
-        *transform = transform.looking_to(forwards_look, Vec3::Y);
     }
 }

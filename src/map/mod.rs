@@ -1,5 +1,7 @@
 mod loader;
 mod mesh;
+use bevy::math::I16Vec2;
+use bevy::math::I16Vec3;
 pub use loader::*;
 
 use bevy::utils::HashMap;
@@ -15,8 +17,8 @@ use bevy::prelude::*;
 use bevy::log;
 use crate::EntityIndex;
 
-pub const TH: i32 = 2;  // Tile height
-pub const THH: i32 = 1; // Half tile height
+pub const TH: i16 = 2;  // Tile height
+pub const THH: i16 = 1; // Half tile height
 
 
 /// Spawns a [`Map`] entity.
@@ -91,6 +93,7 @@ fn finish_map(
     material_assets: &mut Assets<StandardMaterial>,
     mesh_assets: &mut Assets<Mesh>,
 ) {
+    let mut vert_offset: u16 = 0;
     let map = map_assets.get(map_handle).unwrap();
     for layer in map.map.layers() {
 
@@ -104,11 +107,11 @@ fn finish_map(
             layer.properties(),
             layer.name(),
             map,
-            &tileset_assets
+            &tileset_assets,
         );
-        let lift = (group_meta.lift * map.map.tile_height() as f32) as i32;
 
         // Forms graphics meshes, parallel with the map's tileset entries.
+        let mut cliff_mesh = GraphicsMesh::new();
         let mut gmeshes: Vec<GraphicsMesh> = init_graphics_meshes(map.tileset_entries.len());
         for layer in regular_layers {
             let region = layer.region;
@@ -117,57 +120,91 @@ fn finish_map(
 
             // For all columns in regular layer...
             for tile_x in min_x..max_x {
-                // Inchwork up the tile column with the graphics strip, appending to the graphics mesh as it goes.
+                let tile_x = tile_x as i16;
+                let lift = group_meta.lift * TH;
+
+                // Init strip for column
                 let mut gstrip = Strip {
-                    left: IVec3::new(min_x, lift, 0),
-                    right: IVec3::new(min_x+1, lift, 0),
+                    left: I16Vec3::new(tile_x, lift, lift),
+                    right: I16Vec3::new(tile_x+1, lift, lift),
                 };
+
+                // For all tiles in column...
                 for tile_y in (min_y..max_y).rev() {
+                    let tile_y = tile_y as i16;
                     let tile_coords = (tile_x, tile_y);
+
+                    // Gets tile and tile meta
                     let Some(tile) = layer.tiles.get(&tile_coords) else {
-                        gstrip.left.z += TH;
-                        gstrip.right.z += TH;
+                        gstrip.left.z -= TH;
+                        gstrip.right.z -= TH;
                         continue;
                     };
                     let tile_geom = group_meta.graphics_geoms.get(&tile_coords).copied().unwrap_or_default();
+                    let tile_quad_info = tile_geom.shape.quad_info();
+
+                    // Advances strip and generates quad vertices from tile
                     let gstrip_next = gstrip.next(tile_geom.shape);
-                    let (a, b, c, d, e, f) = match tile_geom.shape.quad_info() {
-                        QuadInfo::Quad | QuadInfo::Triangle => GraphicsVertex::quad(
-                            [
-                                gstrip.left,
-                                gstrip.right,
-                                gstrip_next.right,
-                                gstrip_next.left,
-                            ],
-                            [
-                                IVec2::new(tile.uv1.x, tile.uv2.y),
-                                IVec2::new(tile.uv2.x, tile.uv2.y),
-                                IVec2::new(tile.uv2.x, tile.uv1.y),
-                                IVec2::new(tile.uv1
-                                    
-                                    .x, tile.uv1.y),
-                            ],
+                    let tile_vertices = match tile_geom.shape.is_flipped() {
+                        false => GraphicsVertex::quad(
+                            [gstrip.left, gstrip.right, gstrip_next.right, gstrip_next.left],
+                            [I16Vec2::new(tile.uv1.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv1.y)],
+                            vert_offset,
                         ),
-                        QuadInfo::QuadFlipped | QuadInfo::TriangleFlipped => GraphicsVertex::quad(
-                            [
-                                gstrip.right,
-                                gstrip_next.right,
-                                gstrip_next.left,
-                                gstrip.left,
-                            ],
-                            [
-                                IVec2::new(tile.uv2.x, tile.uv2.y),
-                                IVec2::new(tile.uv2.x, tile.uv1.y),
-                                IVec2::new(tile.uv1.x, tile.uv1.y),
-                                IVec2::new(tile.uv1.x, tile.uv2.y),
-                            ],
+                        true => GraphicsVertex::quad(
+                            [gstrip.right, gstrip_next.right, gstrip_next.left, gstrip.left],
+                            [I16Vec2::new(tile.uv2.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv2.y)],
+                            vert_offset,
                         ),
                     };
+
+                    // Pushes quad to relevant mesh
                     let gmesh = &mut gmeshes[tile.tileset_idx];
-                    gmesh.push_quad(a, b, c, d, e, f);
+                    gmesh.push_quad(tile_vertices);
+
+                    // Pushes northern cliff vertices
+                    if tile_geom.cliff.contains(Cliff::NORTH) {
+                        let (point_a, point_b) = match tile_quad_info {
+                            QuadInfo::Quad | QuadInfo::QuadFlipped  => (gstrip_next.left, gstrip_next.right),
+                            QuadInfo::Triangle                      => (gstrip.left, gstrip_next.right),
+                            QuadInfo::TriangleFlipped               => (gstrip_next.left, gstrip.right),
+                        };
+                        let cliff_points = [point_a, point_b, point_b.with_y(lift), point_a.with_y(lift)];
+                        let cliff_uvs = [I16Vec2::ZERO; 4];
+                        let cliff_verts = GraphicsVertex::quad(cliff_points, cliff_uvs, 0);
+                        cliff_mesh.push_quad(cliff_verts);
+                    }
+
+                    // Pushes eastern cliff vertices
+                    if tile_geom.cliff.contains(Cliff::EAST) {
+                        let (point_a, point_b) = (gstrip.right, gstrip_next.right);
+                        let cliff_points = [point_b, point_a, point_a.with_y(lift), point_b.with_y(lift)];
+                        let cliff_uvs = [I16Vec2::ZERO; 4];
+                        let cliff_verts = GraphicsVertex::quad(cliff_points, cliff_uvs, 0);
+                        cliff_mesh.push_quad(cliff_verts);
+                    }
+
+                    // Pushes western cliff vertices
+                    if tile_geom.cliff.contains(Cliff::WEST) {
+                        let (point_a, point_b) = (gstrip.left, gstrip_next.left);
+                        let cliff_points = [point_a, point_b, point_b.with_y(lift), point_a.with_y(lift)];
+                        let cliff_uvs = [I16Vec2::ZERO; 4];
+                        let cliff_verts = GraphicsVertex::quad(cliff_points, cliff_uvs, 0);
+                        cliff_mesh.push_quad(cliff_verts);
+                    }
+
                     gstrip = gstrip_next;
+
+                    // Resets strip to ground level
+                    if tile_geom.reset {
+                        gstrip.left.z -= gstrip.left.y - lift;
+                        gstrip.right.z -= gstrip.right.y - lift;
+                        gstrip.left.y = lift;
+                        gstrip.right.y = lift;
+                    }
                 }
             }
+            vert_offset += 1;
         }
 
         // Creates materials, parallel with the map's tileset entries
@@ -183,6 +220,8 @@ fn finish_map(
                     emissive: tileset.emissive,
                     emissive_texture: tileset.emissive_texture.clone(),
                     normal_map_texture: tileset.normal_texture.clone(),
+                    perceptual_roughness: 1.0,
+                    alpha_mode: AlphaMode::Mask(0.5),
                     ..default()
                 });
                 Mat { material, width, height }
@@ -198,16 +237,25 @@ fn finish_map(
                 map.map.tile_width() as f32,
                 map.map.tile_height() as f32,
             );
-            commands
-                .entity(map_entity)
-                .with_children(|b| {
-                    b.spawn(PbrBundle {
-                        mesh: mesh_assets.add(mesh),
-                        material: mat.material,
-                        ..default()
-                    });
+            commands.entity(map_entity).with_children(|b| {
+                b.spawn(PbrBundle {
+                    mesh: mesh_assets.add(mesh),
+                    material: mat.material,
+                    ..default()
                 });
+            });
         }
+
+        // Spawns cliff mesh
+        let cliff_material = material_assets.add(StandardMaterial { base_color: Color::BLACK, unlit: true, ..default() });
+        let cliff_mesh = create_bevy_mesh(cliff_mesh, 100.0, 100.0, map.map.tile_width() as f32, map.map.tile_height() as f32);
+        commands.entity(map_entity).with_children(|b| {
+            b.spawn(PbrBundle {
+                mesh: mesh_assets.add(cliff_mesh),
+                material: cliff_material,
+                ..default()
+            });
+        });
     }
     commands
         .entity(map_entity)
@@ -227,23 +275,23 @@ struct Mat {
 // Used to build collision and graphics meshes.
 #[derive(Copy, Clone, Debug)]
 struct Strip {
-    left: IVec3,
-    right: IVec3,
+    left: I16Vec3,
+    right: I16Vec3,
 }
 
 impl Strip {
     fn next(mut self, shape: TileShape) -> Self {
         match shape {
             TileShape::Wall | TileShape::WallNE | TileShape::WallNW     => { self.left.y += TH;     self.right.y += TH; },
-            TileShape::WallFloorSE                                      => { self.left.z += TH;     self.right.y += TH; },
-            TileShape::WallFloorSW                                      => { self.left.y += TH;     self.right.z += TH; },
-            TileShape::Floor | TileShape::FloorNE | TileShape::FloorNW  => { self.left.z += TH;     self.right.z += TH; },
-            TileShape::FloorWallSE                                      => { self.left.y += TH;     self.right.z += TH; },
-            TileShape::FloorWallSW                                      => { self.left.z += TH;     self.right.y += TH; },
-            TileShape::FloorSlopeSE                                     => { self.left.z += THH;    self.left.y += THH;     self.right.z += TH; },
-            TileShape::FloorSlopeSW                                     => { self.left.z += TH;     self.right.y += THH;    self.right.z += THH; },
-            TileShape::Slope | TileShape::SlopeNE | TileShape::SlopeNW  => { self.left.z += THH;    self.left.y += THH;     self.right.z += THH;    self.right.y += THH; },
-            TileShape::SlopeFloorSE                                     => { self.left.z += THH },
+            TileShape::WallFloorSE                                      => { self.left.z -= TH;     self.right.y += TH; },
+            TileShape::WallFloorSW                                      => { self.left.y += TH;     self.right.z -= TH; },
+            TileShape::Floor | TileShape::FloorNE | TileShape::FloorNW  => { self.left.z -= TH;     self.right.z -= TH; },
+            TileShape::FloorWallSE                                      => { self.left.y += TH;     self.right.z -= TH; },
+            TileShape::FloorWallSW                                      => { self.left.z -= TH;     self.right.y += TH; },
+            TileShape::FloorSlopeSE                                     => { self.left.z -= THH;    self.left.y += THH;     self.right.z -= TH; },
+            TileShape::FloorSlopeSW                                     => { self.left.z -= TH;     self.right.y += THH;    self.right.z -= THH; },
+            TileShape::Slope | TileShape::SlopeNE | TileShape::SlopeNW  => { self.left.z -= THH;    self.left.y += THH;     self.right.z -= THH;    self.right.y += THH; },
+            TileShape::SlopeFloorSE                                     => { self.left.z -= THH },
             TileShape::SlopeFloorSW                                     => todo!(),
         }
         self
@@ -263,7 +311,7 @@ fn parse_group_layer(
     let mut group_meta = GroupMeta::default();
     for prop in group_layer_props {
         match prop {
-            ("lift", PropertyValue::Float(lift)) => group_meta.lift = *lift,
+            ("lift", PropertyValue::Int(lift)) => group_meta.lift = *lift as i16,
             ("lift", _) => panic!("Property 'lift' not a float"),
             _ => {}
         }
@@ -273,7 +321,6 @@ fn parse_group_layer(
             Some(tile_layer) => tile_layer,
             None => panic!("Layer '{}/{}' not a tile layer", group_layer_name, layer.name()),
         };
-        println!("Parsing {}/{}", group_layer_name, layer.name());
         let layer_type = TileLayerType::from_layer_name(layer.name());
         match layer_type {
             TileLayerType::Regular => regular_layers.push(RegularTileLayer::parse(
@@ -314,6 +361,7 @@ fn parse_meta_layer(
             let tileset = tileset_assets.get(&tileset_entry.tileset).expect("A tileset was not fully loaded");
             let tile = tileset.tileset.tile(tile_id).unwrap();
             let geom = TileGeom::from_tile(tile);
+            let (x, y) = (x as i16, y as i16);
             match meta_layer_type {
                 MetaLayerType::Mesh => {
                     group_meta.graphics_geoms.insert((x, y), geom);
@@ -382,7 +430,6 @@ pub struct Map {
 /// A tileset entry in a [`Map`].
 #[derive(TypePath, Debug)]
 pub struct TilesetEntry {
-    pub first_gid: u32,
     pub tileset: Handle<Tileset>,
 }
 
@@ -398,9 +445,10 @@ pub struct Tileset {
 }
 
 
+#[derive(Debug)]
 struct RegularTileLayer {
     region: TileLayerRegion,
-    tiles: HashMap<(i32, i32), RegularTile>,
+    tiles: HashMap<(i16, i16), RegularTile>,
 }
 
 impl RegularTileLayer {
@@ -423,9 +471,10 @@ impl RegularTileLayer {
                 let tileset_entry = &map.tileset_entries[tileset_idx];
                 let tileset = tileset_assets.get(&tileset_entry.tileset).expect("A tileset was not fully loaded");
                 let tileset_columns = tileset.tileset.columns();
-                let tile_size = IVec2::new(tileset.tileset.tile_width() as i32, tileset.tileset.tile_height() as i32);
-                let uv1 = IVec2::new((tile_id % tileset_columns) as i32, (tile_id / tileset_columns) as i32);
-                let uv2 = uv1 + IVec2::ONE;
+                let tile_size = I16Vec2::new(tileset.tileset.tile_width() as i16, tileset.tileset.tile_height() as i16);
+                let uv1 = I16Vec2::new((tile_id % tileset_columns) as i16, (tile_id / tileset_columns) as i16);
+                let uv2 = uv1 + I16Vec2::ONE;
+                let (tile_x, tile_y) = (tile_x as i16, tile_y as i16);
                 result.tiles.insert((tile_x, tile_y), RegularTile {
                     tileset_idx,
                     uv1: uv1 * tile_size,
@@ -440,8 +489,8 @@ impl RegularTileLayer {
 #[derive(Debug)]
 struct RegularTile {
     tileset_idx: usize,
-    uv1: IVec2,
-    uv2: IVec2,
+    uv1: I16Vec2,
+    uv2: I16Vec2,
 }
 
 
@@ -449,9 +498,9 @@ struct RegularTile {
 /// Also contains aggregate metadata about all of tiles across all non-meta tile layers in the group.
 #[derive(Default)]
 struct GroupMeta {
-    lift: f32,
-    collision_geoms: HashMap<(i32, i32), TileGeom>,
-    graphics_geoms: HashMap<(i32, i32), TileGeom>,
+    lift: i16,
+    collision_geoms: HashMap<(i16, i16), TileGeom>,
+    graphics_geoms: HashMap<(i16, i16), TileGeom>,
 }
 
 /// Information about the 3D geometry of a tile.
@@ -508,9 +557,33 @@ impl TileShape {
 
     fn quad_info(self) -> QuadInfo {
         match self {
-            Self::FloorNE | Self::WallNE | Self::SlopeNE    => QuadInfo::TriangleFlipped,
-            Self::FloorNW | Self::WallNW | Self::SlopeNW    => QuadInfo::Triangle,
+            Self::FloorNE       => QuadInfo::TriangleFlipped,
+            Self::FloorWallSW   => QuadInfo::TriangleFlipped,
+            Self::FloorSlopeSW  => QuadInfo::TriangleFlipped,
+            Self::WallFloorSW   => QuadInfo::TriangleFlipped,
+            Self::WallNE        => QuadInfo::TriangleFlipped,
+            Self::SlopeNE       => QuadInfo::TriangleFlipped,
+            Self::SlopeFloorSW  => QuadInfo::TriangleFlipped,
+            Self::FloorNW       => QuadInfo::Triangle,
+            Self::WallNW        => QuadInfo::Triangle,
+            Self::SlopeNW       => QuadInfo::Triangle,
             _ => QuadInfo::Quad,
+        }
+    }
+
+    fn is_flipped(self) -> bool {
+        match self.quad_info() {
+            QuadInfo::QuadFlipped => true,
+            QuadInfo::TriangleFlipped => true,
+            _ => false,
+        }
+    }
+
+    fn is_triangle(self) -> bool {
+        match self.quad_info() {
+            QuadInfo::Triangle => true,
+            QuadInfo::TriangleFlipped => true,
+            _ => false,
         }
     }
 

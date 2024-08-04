@@ -53,7 +53,6 @@ impl AssetLoader for MapLoader {
                         tileset_load_context.finish(tileset, None)
                     );
                     tileset_entries.push(TilesetEntry {
-                        first_gid: tileset_entry.first_gid(),
                         tileset: tileset_handle,
                     });
                 },
@@ -64,7 +63,6 @@ impl AssetLoader for MapLoader {
                     };
                     let tileset_handle: Handle<Tileset> = load_context.load(tileset_path);
                     tileset_entries.push(TilesetEntry {
-                        first_gid: tileset_entry.first_gid(),
                         tileset: tileset_handle,
                     })
                 },
