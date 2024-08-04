@@ -135,7 +135,10 @@ impl CameraProjection for DualProjection {
 }
 
 fn interp_mat4(a: Mat4, b: Mat4, t: f32) -> Mat4 {
-    let t = t*t*t*t;
+    let segment = CubicSegment::new_bezier([1.0, 0.2], [0.6, 0.0]);
+    let t = segment.ease(t);
+    let t = segment.ease(t);
+    let t = segment.ease(t);
     let a_cols = a.to_cols_array();
     let b_cols = b.to_cols_array();
     let mut result = [0.0; 16];

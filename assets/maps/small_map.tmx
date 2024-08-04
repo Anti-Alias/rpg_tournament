@@ -48,7 +48,7 @@
    H4sIAAAAAAAACu3QyQmAQBAF0RkwNzURt0DcAnFLRM1DULOwvI4eexChC971N7Qxmqa5hdaYCLGV307YTJEhRyF8o2SvQo0GrfB+x16PASMmDz+a2Vyweti+29k9cHra1zS37YVkgX36U1/85wJWoKgrAAkAAA==
   </data>
   </layer>
-  <layer id="35" name=":mesh:" width="24" height="24">
+  <layer id="35" name=":mesh:" width="24" height="24" visible="0">
    <data encoding="base64" compression="gzip">
    H4sIAAAAAAAACmNgGAWjYBQgA09mTExN4MKMiUfNHz7mj4JRgA0M9XKF1mAgwgcAvynbSAAJAAA=
   </data>

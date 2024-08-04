@@ -1,6 +1,6 @@
 use bevy::prelude::*;
-use rpg_tournament::{ActionKind, GamePlugin};
-use rpg_tournament::messages::{InitOverworld, SpawnMap, RunAction};
+use rpg_tournament::GamePlugin;
+use rpg_tournament::messages::{InitOverworld, SpawnMap};
 
 fn main() {
     App::new()
