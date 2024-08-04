@@ -11,7 +11,6 @@ fn main() {
 
 
 fn startup(mut commands: Commands) {
-    commands.trigger(RunAction(ActionKind::Cutscene));
     commands.trigger(InitOverworld);
     commands.trigger(SpawnMap {
         name: "Map",

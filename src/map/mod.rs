@@ -175,7 +175,7 @@ fn finish_map(
 
                     // Pushes eastern cliff vertices
                     if tile_geom.cliff.contains(Cliff::EAST) {
-                        let (point_a, point_b) = (gstrip.right, gstrip_next.right);
+                        let (point_a, point_b) = (gstrip_next.right, gstrip.right);
                         let cliff_points = [point_b, point_a, point_a.with_y(lift), point_b.with_y(lift)];
                         let cliff_uvs = [I16Vec2::ZERO; 4];
                         let cliff_verts = GraphicsVertex::quad(cliff_points, cliff_uvs, 0);
@@ -184,7 +184,7 @@ fn finish_map(
 
                     // Pushes western cliff vertices
                     if tile_geom.cliff.contains(Cliff::WEST) {
-                        let (point_a, point_b) = (gstrip.left, gstrip_next.left);
+                        let (point_a, point_b) = (gstrip_next.left, gstrip.left);
                         let cliff_points = [point_a, point_b, point_b.with_y(lift), point_a.with_y(lift)];
                         let cliff_uvs = [I16Vec2::ZERO; 4];
                         let cliff_verts = GraphicsVertex::quad(cliff_points, cliff_uvs, 0);

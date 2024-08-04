@@ -32,6 +32,7 @@ impl Plugin for GamePlugin {
         app.init_asset_loader::<MapLoader>();
         app.init_asset_loader::<TilesetLoader>();
         app.init_resource::<EntityIndex>();
+        app.init_resource::<overworld::GameTime>();
         app.insert_resource(AmbientLight { color: Color::WHITE, brightness: 400.0, });
         app.observe(overworld::init_overworld);
         app.observe(action::run_action);
@@ -42,6 +43,7 @@ impl Plugin for GamePlugin {
             action::run_action_queues,
             map::finish_maps.after(action::run_action_queues),
             camera::control_flycam.run_if(in_state(DebugStates::Enabled)),
+            overworld::update_game_time,
         ));
     }
 }

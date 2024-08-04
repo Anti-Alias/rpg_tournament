@@ -9,7 +9,7 @@ bitflags = "2.6.0"
 extension-trait = "1.0.2"
 smallvec = "1.13.2"
 thiserror = "1.0.63"
-tiled-parser = { git="https://github.com/Anti-Alias/tiled-parser.git", branch="master" }
+tiled-parser = { git="https://github.com/Anti-Alias/tiled-parser.git", default-features = false, features=["flate2"], branch="master" }
 
 [profile.dev]
 opt-level = 1

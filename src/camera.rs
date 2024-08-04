@@ -145,7 +145,6 @@ fn interp_mat4(a: Mat4, b: Mat4, t: f32) -> Mat4 {
     Mat4::from_cols_array(&result)
 }
 
-const EPS: f32 = 0.001;
 
 pub fn control_flycam(
     mut flycams: Query<(&mut Transform, &mut Flycam, &mut DualProjection)>,
@@ -155,6 +154,7 @@ pub fn control_flycam(
     mut mouse_wheels: EventReader<MouseWheel>,
     time: Res<Time>,
 ) {
+    const EPS: f32 = 0.001;
     let secs = time.delta_seconds();
     for (mut transform, mut flycam, mut projection) in &mut flycams {
 

@@ -8,49 +8,49 @@
  <tileset firstgid="1697" source="tilesets/spring_trees.tsx"/>
  <group id="2" name="ground">
   <layer id="1" name="base" width="24" height="24">
-   <data encoding="base64" compression="zstd">
-   KLUv/WAACF0AACAhAAAAAQD52HdE
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAClNkYGBQHMWjeBSP4lE8ikfxKB5BGAAwslznAAkAAA==
   </data>
   </layer>
   <layer id="24" name=":mesh:" width="24" height="24" visible="0">
-   <data encoding="base64" compression="zstd">
-   KLUv/WAACIUAACAkAwAAAwCdGIMPARN05Ig=
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAClNhZmBQIRGTAkg1e9T8UfNHzR81f9T8UfNHzR81n9bmAwD3o0MoAAkAAA==
   </data>
   </layer>
  </group>
  <group id="30" name="ground_foliage_1">
   <layer id="31" name="base" width="24" height="24">
-   <data encoding="base64" compression="zstd">
-   KLUv/WAACOUEABKJFyKQ2cYBqK9nIkP9M7I98P+MZAZu28WUWy7uR5eJu7v7FEamMS7O4ioiIO7hHBQu4RASuIADSHOZwyS5yEFGcRMnsYZjuIWDM7iCI7iBz3muc5zbXM5ylaPcZI9zXGMWIBCDixY6UQpAoEei0KYQJXCPZRdK8HTLDo2mMyc0JjQ4YfNFKjCZ6oVNPpx0WnkEuvIJXS7qFCjIBg==
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACu3TXQ7BQBSG4ZnE3lqh2/BvG/5to4paB4JdSBC6h75N5gq9ck6q4kue23eSSY4x3znPGuOjauXbDZpNtNBGR/iNAb0hRhhjItwP6S0QYYmVwh9tae6wV2hnu9C94qbU/8X9byJ/ZbyJGp06AteTvokunR76Sjc2pTvDXKm/phtjo9Q/0D3i5PrnNz7Zne4DietX7KsyTfp/nlfE/6Sn37byAAkAAA==
   </data>
   </layer>
   <layer id="32" name=":mesh:" width="24" height="24" visible="0">
-   <data encoding="base64" compression="zstd">
-   KLUv/WAACM0BACgASQNEAxig0HVwQ0UFeSC6dwgVGalNiPTZKErUhCiTKFOEyXO56IvVqKL6Rmoaxb0M+u9tCNQnAQ==
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACmNgGHzAkxkTUxO4MGPiUfOHj/nDEYzmieFnPnJc0sJ8Wuev4WY+tfMYuvlDvdwb6mUQNgAAsqc/RwAJAAA=
   </data>
   </layer>
  </group>
  <group id="3" name="platforms">
   <layer id="4" name="base" width="24" height="24">
-   <data encoding="base64" compression="zstd">
-   KLUv/WAACL0EAOKGEh6gOXMdDuHZHyLBZgNztPaHiGEv6A0NDh2AiAh2kwInl0QO+bijccYXFU8gflg4YXDBAwekPi3pUXvOsZBb7xVzWvu64cvnDXNlH6BAnkR2ZQ4wAnAmtDW1R1ixJ9XVH2d7uOHEmgdnv27I2W6BKGBeGceY9JGPZF/DcRZGnIu7cnhnIY5zZMMmfuZr/TxZLQmqEgE=
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACmNgGAXEACEgFsGBRYFYnEKzhYG4EYgVgdgRynZE4otRYIcRkjmJQHwYihWh9iyEiptTYP5CKIaZvRBq/mGo2Y4UmB8ExMFI7oS5XRGJHQbE4WSaXwTExUBcAsSlOHAZEJeTaf4kIJ5CAE8F4ulkmr8JiDcD8RY8eCsQbyfTfBC4DMRXcOCrQHyNArOHAxgtH/CbP1o+4Aaj5cPAAQCX/sHeAAkAAA==
   </data>
   </layer>
   <layer id="25" name=":mesh:" width="24" height="24" visible="0">
-   <data encoding="base64" compression="zstd">
-   KLUv/WAACK0CAOAA4wIAAOTlAgAkAwMDBQMjJUQDJQNEA0NFJANFFaCQFC8GcIIVzcZitUeook5QK7JOHTh27qs0nD9UkOOKPe/ETqx8gnr0qWfn8z+DMJ/0MBJUagI=
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACmNgGAXEgMdMDAxP8OCnTJSZrcJMGJNrBzMRZoMwK/PgNF+ZSPNVyTTfhZmwHSCzXSgwn1hMDnAm0mxXMs0H+Z+QHa7QcBqpYLR8GDjzR8sH/GC0fMANAB5upZUACQAA
   </data>
   </layer>
  </group>
  <group id="33" name="ground_foliage_2">
   <layer id="34" name="base" width="24" height="24">
-   <data encoding="base64" compression="zstd">
-   KLUv/WAACB0DAILFDhmwaTr0OdTnXJoaqDQ1UIl9BoD9DMNUMGQKKZBNTnKRPc5xDcYtTnGJQxzOcIUj3EBwgQPcc86aY24ZDABxZKWQAhTYeZgAjV1yzYDKCz75cLLTymOgK58BXQ5Qp0jl2A==
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACu3QyQmAQBAF0RkwNzURt0DcAnFLRM1DULOwvI4eexChC971N7Qxmqa5hdaYCLGV307YTJEhRyF8o2SvQo0GrfB+x16PASMmDz+a2Vyweti+29k9cHra1zS37YVkgX36U1/85wJWoKgrAAkAAA==
   </data>
   </layer>
   <layer id="35" name=":mesh:" width="24" height="24">
-   <data encoding="base64" compression="zstd">
-   KLUv/WAACC0BACgASQNEAwqAYOsBcWSlDSa9LTJVASp9Y1AnQNl5CVDvPEKkciM=
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACmNgGAWjYBQgA09mTExN4MKMiUfNHz7mj4JRgA0M9XKF1mAgwgcAvynbSAAJAAA=
   </data>
   </layer>
  </group>
@@ -59,13 +59,13 @@
    <property name="lift" type="int" value="3"/>
   </properties>
   <layer id="28" name="foliage" width="24" height="24">
-   <data encoding="base64" compression="zstd">
-   KLUv/WAACGUDAIQDAEsBAABMAQAATQFrAQAAbAEAAG0BiwEAAIwBAACNAasBAACsAQAArQHMAewB5OME5QADAQAFAQAVoODOlj3gArJuBnZU6AVn8o84Oyab7aW/NudVz2M/e5+yxBWX86eoT2/xPrsVI6TCBw==
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACmNgoA/wZmRg8AFiX0b8YuSCbKAZOUCcy4hfjFzQDTSjB4h7GfGLkQtWA81YA8RrGfGLUQLOYDEHmxi54A0Ws7CJjYJRMArIA09wsCkFj6E0C1J+hbGfUsF8ZjzlAOtoGTEKBggAAPqQKOIACQAA
   </data>
   </layer>
   <layer id="29" name=":gmesh:" width="24" height="24" visible="0">
-   <data encoding="base64" compression="zstd">
-   KLUv/WAACLUBADgASQNEA0kDFKCgd+ACHAqsDXlGqAIxu0aDvQ5f9En0JJxS8Kq+sap3Hvrjwc35Uj4uTIT02A==
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACmNgoA/wZEZgfGLkAhdmBMYnNmr+0DR/FIyCUYBZflLbXPT8Sy178JUBo+XDKBgoAADK+TkpAAkAAA==
   </data>
   </layer>
  </group>
