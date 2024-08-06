@@ -33,7 +33,7 @@ impl Plugin for GamePlugin {
         app.init_state::<ScreenStates>();
         app.init_state::<DebugStates>();
         app.init_resource::<EntityIndex>();
-        app.insert_resource(AmbientLight { color: Color::WHITE, brightness: 400.0, });
+        app.insert_resource(AmbientLight { color: Color::WHITE, brightness: 300.0, });
 
         // Observers
         app.observe(action::run_action);

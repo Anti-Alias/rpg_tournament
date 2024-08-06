@@ -1,4 +1,3 @@
-use bevy::render::view::visibility;
 use rand::prelude::*;
 use std::f32::consts::{SQRT_2, TAU};
 use std::time::Duration;

@@ -35,22 +35,27 @@ pub fn update_game_time(
 
 fn sun_brightness(t: f32) -> f32 {
     let segment = CubicSegment::new_bezier(Vec2::new(0.3, 1.085), Vec2::new(0.08, 0.935));
-    if t > TIME_FRAC_MORNING && t < TIME_FRAC_NIGHT {
+    if t >= TIME_FRAC_MORNING && t < TIME_FRAC_NIGHT {
         let t_linear = 1.0 - 4.0 * (TIME_FRAC_NOON - t).abs();
         segment.ease(t_linear)
     }
     else {
-        0.0
+        let t_linear = if t >= TIME_FRAC_NIGHT { t - TIME_FRAC_NIGHT } else { TIME_FRAC_MORNING - t } * 4.0;
+        segment.ease(t_linear) * 0.2
     }
 }
 
 fn sun_rotation_y(t: f32, start_rot: f32, end_rot: f32) -> f32 {
-    if t > TIME_FRAC_MORNING && t < TIME_FRAC_NIGHT {
+    /// Morning hours
+    if t >= TIME_FRAC_MORNING && t < TIME_FRAC_NIGHT {
         let t = (t - TIME_FRAC_MORNING) / (TIME_FRAC_NIGHT - TIME_FRAC_MORNING);
         start_rot + (end_rot - start_rot) * t
     }
+
+    // Night hours
     else {
-        0.0
+        let t = if t >= TIME_FRAC_NIGHT { t - TIME_FRAC_NIGHT } else { t + 0.25 } * 2.0;
+        start_rot + (end_rot - start_rot) * t
     }
 }
 
@@ -90,8 +95,8 @@ impl GameTime {
 
 impl Default for GameTime {
     fn default() -> Self {
-        let day_duration = Duration::from_secs(60 * 10);
-        let time_of_day = day_duration / 2;
+        let day_duration = Duration::from_secs(10);
+        let time_of_day = day_duration * 4/8;
         Self {
             time_of_day,
             time_of_day_prev: time_of_day,
