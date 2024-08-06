@@ -4,11 +4,13 @@ mod act;
 mod overworld;
 mod camera;
 mod pixel;
+mod daynight;
+mod mobs;
+mod common;
 
 use bevy::pbr::PbrProjectionPlugin;
 use bevy::render::camera::CameraProjectionPlugin;
 use camera::DualProjection;
-use map::*;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 
@@ -19,31 +21,47 @@ pub use action::ActionKind;
 pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
+        app.insert_resource(Msaa::Off);
         app.add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             CameraProjectionPlugin::<DualProjection>::default(),
             PbrProjectionPlugin::<DualProjection>::default(),
             pixel::PixelPlugin::default(),
         ));
+
+        // Lib
         app.init_state::<ScreenStates>();
         app.init_state::<DebugStates>();
-        app.init_asset::<Map>();
-        app.init_asset::<Tileset>();
-        app.init_asset_loader::<MapLoader>();
-        app.init_asset_loader::<TilesetLoader>();
         app.init_resource::<EntityIndex>();
-        app.init_resource::<overworld::GameTime>();
         app.insert_resource(AmbientLight { color: Color::WHITE, brightness: 400.0, });
-        app.observe(overworld::init_overworld);
+
+        // Observers
         app.observe(action::run_action);
         app.observe(action::quit_action);
         app.observe(map::spawn_map);
         app.observe(map::despawn_map);
+        app.observe(map::spawn_entity);
+        app.observe(overworld::init_overworld);
+
+        // Daynight
+        app.init_resource::<daynight::GameTime>();
+
+        // Map
+        app.init_asset::<map::Map>();
+        app.init_asset::<map::Tileset>();
+        app.init_asset_loader::<map::MapLoader>();
+        app.init_asset_loader::<map::TilesetLoader>();
+        
+        // Common
+        app.init_resource::<common::CommonAssets>();
+
+        // Systems
         app.add_systems(Update, (
             action::run_action_queues,
-            map::finish_maps.after(action::run_action_queues),
+            map::process_loaded_maps.after(action::run_action_queues),
             camera::control_flycam.run_if(in_state(DebugStates::Enabled)),
-            overworld::update_game_time,
+            daynight::update_game_time,
+            mobs::update_fireflies,
         ));
     }
 }

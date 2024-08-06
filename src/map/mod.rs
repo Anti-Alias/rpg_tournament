@@ -1,9 +1,12 @@
+mod spawn;
 mod loader;
 mod mesh;
-use bevy::math::I16Vec2;
-use bevy::math::I16Vec3;
+
+pub use spawn::*;
 pub use loader::*;
 
+use bevy::math::I16Vec2;
+use bevy::math::I16Vec3;
 use bevy::utils::HashMap;
 use bitflags::bitflags;
 use mesh::create_bevy_mesh;
@@ -60,7 +63,7 @@ pub fn despawn_map(
 }
 
 /// Monitors loading [`Map`] entities, and finalizes them once they finish loading.
-pub fn finish_maps(
+pub fn process_loaded_maps(
     mut commands: Commands,
     mut map_entities: Query<(Entity, &Handle<Map>)>,
     map_assets: Res<Assets<Map>>,
@@ -71,7 +74,7 @@ pub fn finish_maps(
 ) {
     for (map_entity, map_handle) in &mut map_entities {
         if asset_server.is_loaded_with_dependencies(map_handle) {
-            finish_map(
+            process_map(
                 &mut commands,
                 map_entity,
                 map_handle,
@@ -84,7 +87,7 @@ pub fn finish_maps(
     }
 }
 
-fn finish_map(
+fn process_map(
     commands: &mut Commands,
     map_entity: Entity,
     map_handle: &Handle<Map>,
@@ -96,169 +99,242 @@ fn finish_map(
     let mut vert_offset: u16 = 0;
     let map = map_assets.get(map_handle).unwrap();
     for layer in map.map.layers() {
-
-        // Parses group layer
-        let group_layer = match layer.as_group_layer() {
-            Some(group_layer) => group_layer,
-            None => panic!("Layer '{}' not a group layer", layer.name()),
-        };
-        let (regular_layers, group_meta) = parse_group_layer(
-            group_layer,
-            layer.properties(),
-            layer.name(),
-            map,
-            &tileset_assets,
-        );
-
-        // Forms graphics meshes, parallel with the map's tileset entries.
-        let mut cliff_mesh = GraphicsMesh::new();
-        let mut gmeshes: Vec<GraphicsMesh> = init_graphics_meshes(map.tileset_entries.len());
-        for layer in regular_layers {
-            let region = layer.region;
-            let (min_x, max_x) = (region.x, region.x + region.width as i32);
-            let (min_y, max_y) = (region.y, region.y + region.height as i32);
-
-            // For all columns in regular layer...
-            for tile_x in min_x..max_x {
-                let tile_x = tile_x as i16;
-                let lift = group_meta.lift * TH;
-
-                // Init strip for column
-                let mut gstrip = Strip {
-                    left: I16Vec3::new(tile_x, lift, lift),
-                    right: I16Vec3::new(tile_x+1, lift, lift),
-                };
-
-                // For all tiles in column...
-                for tile_y in (min_y..max_y).rev() {
-                    let tile_y = tile_y as i16;
-                    let tile_coords = (tile_x, tile_y);
-
-                    // Gets tile and tile meta
-                    let tile = layer.tiles.get(&tile_coords);
-                    let tile_geom = group_meta.graphics_geoms.get(&tile_coords).copied().unwrap_or_default();
-                    let tile_quad_info = tile_geom.shape.quad_info();
-                    let gstrip_next = gstrip.next(tile_geom.shape);
-
-                    // Advances strip and generates quad vertices from tile
-                    if let Some(tile) = tile {
-                        let tile_vertices = match tile_geom.shape.is_flipped() {
-                            false => GraphicsVertex::quad(
-                                [gstrip.left, gstrip.right, gstrip_next.right, gstrip_next.left],
-                                [I16Vec2::new(tile.uv1.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv1.y)],
-                                vert_offset,
-                            ),
-                            true => GraphicsVertex::quad(
-                                [gstrip.right, gstrip_next.right, gstrip_next.left, gstrip.left],
-                                [I16Vec2::new(tile.uv2.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv2.y)],
-                                vert_offset,
-                            ),
-                        };
-
-                        // Pushes quad to relevant mesh
-                        let gmesh = &mut gmeshes[tile.tileset_idx];
-                        gmesh.push_quad(tile_vertices);
-                    }
-
-                    // Pushes northern cliff vertices
-                    if tile_geom.cliff.contains(Cliff::NORTH) {
-                        let (point_a, point_b) = match tile_quad_info {
-                            QuadInfo::Quad | QuadInfo::QuadFlipped  => (gstrip_next.left, gstrip_next.right),
-                            QuadInfo::Triangle                      => (gstrip.left, gstrip_next.right),
-                            QuadInfo::TriangleFlipped               => (gstrip_next.left, gstrip.right),
-                        };
-                        let cliff_points = [point_a, point_b, point_b.with_y(lift), point_a.with_y(lift)];
-                        let cliff_uvs = [I16Vec2::ZERO; 4];
-                        let cliff_verts = GraphicsVertex::quad(cliff_points, cliff_uvs, 0);
-                        cliff_mesh.push_quad(cliff_verts);
-                    }
-
-                    // Pushes eastern cliff vertices
-                    if tile_geom.cliff.contains(Cliff::EAST) {
-                        let (point_a, point_b) = (gstrip_next.right, gstrip.right);
-                        let cliff_points = [point_b, point_a, point_a.with_y(lift), point_b.with_y(lift)];
-                        let cliff_uvs = [I16Vec2::ZERO; 4];
-                        let cliff_verts = GraphicsVertex::quad(cliff_points, cliff_uvs, 0);
-                        cliff_mesh.push_quad(cliff_verts);
-                    }
-
-                    // Pushes western cliff vertices
-                    if tile_geom.cliff.contains(Cliff::WEST) {
-                        let (point_a, point_b) = (gstrip_next.left, gstrip.left);
-                        let cliff_points = [point_a, point_b, point_b.with_y(lift), point_a.with_y(lift)];
-                        let cliff_uvs = [I16Vec2::ZERO; 4];
-                        let cliff_verts = GraphicsVertex::quad(cliff_points, cliff_uvs, 0);
-                        cliff_mesh.push_quad(cliff_verts);
-                    }
-
-                    gstrip = gstrip_next;
-
-                    // Resets strip to ground level
-                    if tile_geom.reset {
-                        gstrip.left.z -= gstrip.left.y - lift;
-                        gstrip.right.z -= gstrip.right.y - lift;
-                        gstrip.left.y = lift;
-                        gstrip.right.y = lift;
-                    }
-                }
-            }
-            vert_offset += 1;
-        }
-
-        // Creates materials, parallel with the map's tileset entries
-        let materials: Vec<Mat> = map.tileset_entries.iter()
-            .map(|entry| tileset_assets.get(&entry.tileset).unwrap())
-            .map(|tileset| {
-                let image = tileset.tileset.image().expect("Multi image tilesets not supported");
-                let width = image.width().expect("Image did not include a width");
-                let height = image.height().expect("Image did not include a height");
-                let material = material_assets.add(StandardMaterial {
-                    base_color: tileset.base_color,
-                    base_color_texture: Some(tileset.base_color_texture.clone()),
-                    emissive: tileset.emissive,
-                    emissive_texture: tileset.emissive_texture.clone(),
-                    normal_map_texture: tileset.normal_texture.clone(),
-                    perceptual_roughness: 1.0,
-                    alpha_mode: AlphaMode::Mask(0.5),
-                    ..default()
-                });
-                Mat { material, width, height }
-            })
-            .collect();
-
-        // Spawns material/meshes
-        for (gmesh, mat) in gmeshes.into_iter().zip(materials) {
-            let mesh = create_bevy_mesh(
-                gmesh,
-                mat.width as f32,
-                mat.height as f32,
-                map.map.tile_width() as f32,
+        match layer.kind() {
+            tp::LayerKind::GroupLayer(group_layer) => process_group_layer(
+                commands,
+                group_layer,
+                layer.properties(),
+                layer.name(),
+                map_entity,
+                map,
+                tileset_assets,
+                material_assets,
+                mesh_assets,
+                &mut vert_offset,
+            ),
+            tp::LayerKind::ObjectGroupLayer(object_layer) => process_object_layer(
+                commands,
+                object_layer,
                 map.map.tile_height() as f32,
-            );
-            commands.entity(map_entity).with_children(|b| {
-                b.spawn(PbrBundle {
-                    mesh: mesh_assets.add(mesh),
-                    material: mat.material,
-                    ..default()
-                });
-            });
+                map.map.tile_height() as f32 * map.map.height() as f32,
+            ),
+            tp::LayerKind::TileLayer(_) => panic!("Unexpected tile layer"),
+            tp::LayerKind::ImageLayer(_) => panic!("Unexpected image layer"),
         }
-
-        // Spawns cliff mesh
-        let cliff_material = material_assets.add(StandardMaterial { base_color: Color::BLACK, unlit: true, ..default() });
-        let cliff_mesh = create_bevy_mesh(cliff_mesh, 100.0, 100.0, map.map.tile_width() as f32, map.map.tile_height() as f32);
-        commands.entity(map_entity).with_children(|b| {
-            b.spawn(PbrBundle {
-                mesh: mesh_assets.add(cliff_mesh),
-                material: cliff_material,
-                ..default()
-            });
-        });
     }
     commands
         .entity(map_entity)
         .remove::<Handle<Map>>();
     log::info!("Finished map");
+}
+
+fn process_group_layer(
+    commands: &mut Commands,
+    group_layer: &tp::GroupLayer,
+    group_layer_props: &tp::Properties,
+    group_layer_name: &str,
+    map_entity: Entity,
+    map: &Map,
+    tileset_assets: &Assets<Tileset>,
+    material_assets: &mut Assets<StandardMaterial>,
+    mesh_assets: &mut Assets<Mesh>,
+    vert_offset: &mut u16,
+) {
+
+    let (regular_layers, group_meta) = parse_group_layer(
+        group_layer,
+        group_layer_props,
+        group_layer_name,
+        map,
+        &tileset_assets,
+    );
+
+    // Forms graphics meshes, parallel with the map's tileset entries.
+    let mut cliff_mesh = GraphicsMesh::new();
+    let mut gmeshes: Vec<GraphicsMesh> = init_graphics_meshes(map.tileset_entries.len());
+    for layer in regular_layers {
+        let region = layer.region;
+        let (min_x, max_x) = (region.x, region.x + region.width as i32);
+        let (min_y, max_y) = (region.y, region.y + region.height as i32);
+
+        // For all columns in regular layer...
+        for tile_x in min_x..max_x {
+            let tile_x = tile_x as i16;
+            let lift = group_meta.lift * TH;
+
+            // Init strip for column
+            let mut gstrip = Strip {
+                left: I16Vec3::new(tile_x, lift, lift),
+                right: I16Vec3::new(tile_x+1, lift, lift),
+            };
+
+            // For all tiles in column...
+            for tile_y in (min_y..max_y).rev() {
+                let tile_y = tile_y as i16;
+                let tile_coords = (tile_x, tile_y);
+
+                // Gets tile and tile meta
+                let tile = layer.tiles.get(&tile_coords);
+                let tile_geom = group_meta.graphics_geoms.get(&tile_coords).copied().unwrap_or_default();
+                let tile_quad_info = tile_geom.shape.quad_info();
+                let gstrip_next = gstrip.next(tile_geom.shape);
+
+                // Advances strip and generates quad vertices from tile
+                if let Some(tile) = tile {
+                    let tile_vertices = match tile_geom.shape.is_flipped() {
+                        false => GraphicsVertex::quad(
+                            [gstrip.left, gstrip.right, gstrip_next.right, gstrip_next.left],
+                            [I16Vec2::new(tile.uv1.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv1.y)],
+                            *vert_offset,
+                        ),
+                        true => GraphicsVertex::quad(
+                            [gstrip.right, gstrip_next.right, gstrip_next.left, gstrip.left],
+                            [I16Vec2::new(tile.uv2.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv2.y)],
+                            *vert_offset,
+                        ),
+                    };
+
+                    // Pushes quad to relevant mesh
+                    let gmesh = &mut gmeshes[tile.tileset_idx];
+                    gmesh.push_quad(tile_vertices);
+                }
+
+                // Pushes northern cliff vertices
+                if tile_geom.cliff.contains(Cliff::NORTH) {
+                    let (point_a, point_b) = match tile_quad_info {
+                        QuadInfo::Quad | QuadInfo::QuadFlipped  => (gstrip_next.left, gstrip_next.right),
+                        QuadInfo::Triangle                      => (gstrip.left, gstrip_next.right),
+                        QuadInfo::TriangleFlipped               => (gstrip_next.left, gstrip.right),
+                    };
+                    let cliff_points = [point_a, point_b, point_b.with_y(lift), point_a.with_y(lift)];
+                    let cliff_uvs = [I16Vec2::ZERO; 4];
+                    let cliff_verts = GraphicsVertex::quad(cliff_points, cliff_uvs, 0);
+                    cliff_mesh.push_quad(cliff_verts);
+                }
+
+                // Pushes eastern cliff vertices
+                if tile_geom.cliff.contains(Cliff::EAST) {
+                    let (point_a, point_b) = (gstrip_next.right, gstrip.right);
+                    let cliff_points = [point_b, point_a, point_a.with_y(lift), point_b.with_y(lift)];
+                    let cliff_uvs = [I16Vec2::ZERO; 4];
+                    let cliff_verts = GraphicsVertex::quad(cliff_points, cliff_uvs, 0);
+                    cliff_mesh.push_quad(cliff_verts);
+                }
+
+                // Pushes western cliff vertices
+                if tile_geom.cliff.contains(Cliff::WEST) {
+                    let (point_a, point_b) = (gstrip_next.left, gstrip.left);
+                    let cliff_points = [point_a, point_b, point_b.with_y(lift), point_a.with_y(lift)];
+                    let cliff_uvs = [I16Vec2::ZERO; 4];
+                    let cliff_verts = GraphicsVertex::quad(cliff_points, cliff_uvs, 0);
+                    cliff_mesh.push_quad(cliff_verts);
+                }
+
+                gstrip = gstrip_next;
+
+                // Resets strip to ground level
+                if tile_geom.reset {
+                    gstrip.left.z -= gstrip.left.y - lift;
+                    gstrip.right.z -= gstrip.right.y - lift;
+                    gstrip.left.y = lift;
+                    gstrip.right.y = lift;
+                }
+            }
+        }
+        *vert_offset += 1;
+    }
+
+    // Creates materials, parallel with the map's tileset entries
+    let materials: Vec<Mat> = map.tileset_entries.iter()
+        .map(|entry| tileset_assets.get(&entry.tileset).unwrap())
+        .map(|tileset| {
+            let image = tileset.tileset.image().expect("Multi image tilesets not supported");
+            let width = image.width().expect("Image did not include a width");
+            let height = image.height().expect("Image did not include a height");
+            let material = material_assets.add(StandardMaterial {
+                base_color: tileset.base_color,
+                base_color_texture: Some(tileset.base_color_texture.clone()),
+                emissive: tileset.emissive,
+                emissive_texture: tileset.emissive_texture.clone(),
+                normal_map_texture: tileset.normal_texture.clone(),
+                perceptual_roughness: 1.0,
+                alpha_mode: AlphaMode::Mask(0.5),
+                double_sided: true,
+                cull_mode: None,
+                ..default()
+            });
+            Mat { material, width, height }
+        })
+        .collect();
+
+    // Spawns material/meshes
+    for (gmesh, mat) in gmeshes.into_iter().zip(materials) {
+        let mesh = create_bevy_mesh(
+            gmesh,
+            mat.width as f32,
+            mat.height as f32,
+            map.map.tile_width() as f32,
+            map.map.tile_height() as f32,
+        );
+        commands.entity(map_entity).with_children(|b| {
+            b.spawn(PbrBundle {
+                mesh: mesh_assets.add(mesh),
+                material: mat.material,
+                ..default()
+            });
+        });
+    }
+
+    // Spawns cliff mesh
+    let cliff_material = material_assets.add(StandardMaterial { base_color: Color::BLACK, unlit: true, ..default() });
+    let cliff_mesh = create_bevy_mesh(cliff_mesh, 100.0, 100.0, map.map.tile_width() as f32, map.map.tile_height() as f32);
+    commands.entity(map_entity).with_children(|b| {
+        b.spawn(PbrBundle {
+            mesh: mesh_assets.add(cliff_mesh),
+            material: cliff_material,
+            ..default()
+        });
+    });
+}
+
+
+fn process_object_layer(
+    commands: &mut Commands,
+    object_layer: &tp::ObjectGroupLayer,
+    tile_height: f32,
+    map_height_px: f32,
+) {
+    for object in object_layer.objects() {
+        let props = object.properties();
+        for (prop_name, prop_value) in props.iter() {
+            match (prop_name, prop_value) {
+                ("type", PropertyValue::String(typ)) => {
+                    let entity_type = EntityType::parse(typ);
+                    spawn_object(commands, object, entity_type, tile_height, map_height_px);
+                }
+                ("type", _) => panic!("Property 'type' not a string"),
+                _ => {}
+            }
+        }
+    }
+}
+
+fn spawn_object(
+    commands: &mut Commands,
+    object: &tp::Object,
+    entity_type: EntityType,
+    tile_height: f32,
+    map_height_px: f32,
+) {
+    let mut position = Vec3::new(object.x(), 0.0, object.y() - map_height_px);
+    for (prop_name, prop_value) in object.properties() {
+        match (prop_name, prop_value) {
+            ("lift", PropertyValue::Float(lift))    => { position += Vec3::new(0.0, *lift * tile_height, *lift * tile_height) }
+            ("lift", PropertyValue::Int(lift))      => { position += Vec3::new(0.0, *lift as f32 * tile_height, *lift as f32 * tile_height) }
+            _ => {}
+        }
+    }
+    commands.trigger(SpawnEntity { entity_type, position });
 }
 
 // Material with metadata
