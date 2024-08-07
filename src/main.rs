@@ -14,7 +14,7 @@ fn startup(mut commands: Commands) {
     commands.trigger(InitOverworld);
     commands.trigger(SpawnMap {
         name: "Map",
-        file: "maps/small_map.tmx",
+        file: "maps/test_map_2.tmx",
         position: Vec3::ZERO
     });
 }

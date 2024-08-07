@@ -19,7 +19,9 @@ pub fn init_overworld(
 
     let mut camera = GameCameraBundle::default();
     camera.projection.t = 0.0;
+    camera.color_grading.global.post_saturation = 1.1;
     camera.projection.perspective = PerspectiveProjection { near: 16.0, ..default() };
+    camera.projection.orthographic.far = 10000.0;
     camera.projection.orthographic.scale = 0.5;
     camera.transform = Transform::from_xyz(128.0, 256.0, 256.0).looking_to(Vec3::new(0.0, -1.0, -1.0), Vec3::Y);
     camera.tonemapping = Tonemapping::None;

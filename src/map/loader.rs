@@ -4,7 +4,7 @@ use bevy::asset::io::Reader;
 use tiled_parser as tp;
 use thiserror::*;
 
-use super::{Map, Tileset, TilesetEntry};
+use super::{Map, MapWorld, Tileset, TilesetEntry};
 
 /// Loads a [`Map`].
 #[derive(Default)]
@@ -132,6 +132,34 @@ impl AssetLoader for TilesetLoader {
     }
 }
 
+
+#[derive(Default)]
+pub struct MapWorldLoader {}
+impl AssetLoader for MapWorldLoader {
+    type Asset = MapWorld;
+    type Settings = ();
+    type Error = MapWorldLoadError;
+
+    async fn load<'a>(
+        &'a self,
+        reader: &'a mut Reader<'_>,
+        _settings: &'a (),
+        load_context: &'a mut LoadContext<'_>,
+    ) -> Result<MapWorld, MapWorldLoadError>
+    {
+        // Reads tileset bytes
+        let mut bytes = vec![];
+        reader.read_to_end(&mut bytes).await?;
+
+        let map_world = tp::World::parse(bytes.as_slice())?;
+        Ok(MapWorld(map_world))
+    }
+
+    fn extensions(&self) -> &[&str] {
+        &["world"]
+    }
+}
+
 #[derive(Error, Debug)]
 #[error(transparent)]
 pub enum MapLoadError {
@@ -139,4 +167,11 @@ pub enum MapLoadError {
     MapError(#[from] tp::Error),
     #[error("All tilesets must include an image")]
     MissingImageError,
+}
+
+#[derive(Error, Debug)]
+#[error(transparent)]
+pub enum MapWorldLoadError {
+    IOError(#[from] std::io::Error),
+    MapError(#[from] tp::Error),
 }

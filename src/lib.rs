@@ -33,7 +33,7 @@ impl Plugin for GamePlugin {
         app.init_state::<ScreenStates>();
         app.init_state::<DebugStates>();
         app.init_resource::<EntityIndex>();
-        app.insert_resource(AmbientLight { color: Color::WHITE, brightness: 300.0, });
+        app.init_resource::<AmbientLight>();
 
         // Observers
         app.observe(action::run_action);
@@ -49,8 +49,10 @@ impl Plugin for GamePlugin {
         // Map
         app.init_asset::<map::Map>();
         app.init_asset::<map::Tileset>();
+        app.init_asset::<map::MapWorld>();
         app.init_asset_loader::<map::MapLoader>();
         app.init_asset_loader::<map::TilesetLoader>();
+        app.init_asset_loader::<map::MapWorldLoader>();
         
         // Common
         app.init_resource::<common::CommonAssets>();

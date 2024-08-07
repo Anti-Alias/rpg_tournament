@@ -258,6 +258,7 @@ fn process_group_layer(
                 emissive_texture: tileset.emissive_texture.clone(),
                 normal_map_texture: tileset.normal_texture.clone(),
                 perceptual_roughness: 1.0,
+                reflectance: 0.0,
                 alpha_mode: AlphaMode::Mask(0.5),
                 double_sided: true,
                 cull_mode: None,
@@ -506,6 +507,9 @@ pub struct Map {
 pub struct TilesetEntry {
     pub tileset: Handle<Tileset>,
 }
+
+#[derive(Asset, TypePath, Clone, Eq, PartialEq, Debug)]
+pub struct MapWorld(tiled_parser::World);
 
 /// A tileset referenced by a [`TilesetEntry`].
 #[derive(Asset, TypePath, Debug, Default)]

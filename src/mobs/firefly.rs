@@ -55,7 +55,7 @@ pub fn spawn_firefly(
 ) {
     // Root light
     let mut light = PointLightBundle::default();
-    let light_color = Color::linear_rgb(0.2, 1.0, 1.0);
+    let light_color = Color::linear_rgb(1.0, 1.0, 0.5);
     light.point_light.color = light_color;
     light.point_light.intensity = FIREFLY_LIGHT_INTENSITY;
     light.point_light.range = 64.0;
