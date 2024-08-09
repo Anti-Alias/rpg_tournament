@@ -19,19 +19,18 @@ pub fn update_game_time(
     mut ambient: ResMut<AmbientLight>,
     mut sunlights: Query<(&mut DirectionalLight, &Sunlight, &mut Transform)>,
 ) {
-
     // Updates game time
     let game_time = &mut *game_time;
     game_time.prev_elapsed = game_time.elapsed;
     game_time.elapsed += time.delta();
     let time_frac = game_time.time_fraction();
 
-    // Manipulates ambient light
+    // Manipulates ambient light using time fraction
     let amb_bright = ambient_brightness(time_frac);
     ambient.color = AMBIENT_NIGHT_COLOR.mix(&AMBIENT_DAY_COLOR, amb_bright);
     ambient.brightness = AMBIENT_MIN_BRIGHTNESS + AMBIENT_BASE_BRIGHTNESS * amb_bright;
 
-    // Manipulates sun
+    // Manipulates sun using time fraction
     let sun_bright = sun_brightness(time_frac);
     let sun_rot_y = sun_rotation_y(time_frac, -0.9, 0.9);
     let sun_rot = Quat::from_euler(EulerRot::YXZ, sun_rot_y, -1.0, 0.0);
@@ -77,28 +76,27 @@ fn sun_rotation_y(time_frac: f32, start_rot: f32, end_rot: f32) -> f32 {
 }
 
 
+/// Used to track the time of day as a fraction.
 #[derive(Resource, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct GameTime {
-    pub elapsed: Duration,
-    pub prev_elapsed: Duration,
-    pub day_duration: Duration,
+    elapsed: Duration,
+    prev_elapsed: Duration,
+    day_duration: Duration,
 }
 
 impl GameTime {
     
     /// Time of day represented as a number that cycles between 0.0 and 1.0.
-    /// 0.0 = midnight, and 1.0 = midnight.
+    /// 0.0 = midnight, 0.5 = noon, 1.0 = midnight.
     pub fn time_fraction(&self) -> f32 {
         self.time_fraction_of(self.elapsed)
     }
 
-    pub fn time_fraction_prev(&self) -> f32 {
-        self.time_fraction_of(self.prev_elapsed)
-    }
-
+    /// If the current time of day just passed a particular time fraction this frame.
+    /// Useful for triggering actions when morning starts, nights starts etc.
     pub fn time_just_passed(&self, time_fraction: f32) -> bool {
-        let time_frac = self.time_fraction();
-        let time_frac_prev = self.time_fraction_prev();
+        let time_frac = self.time_fraction_of(self.elapsed);
+        let time_frac_prev = self.time_fraction_of(self.prev_elapsed);
         time_frac >= time_fraction && time_frac_prev < time_fraction
     }
 

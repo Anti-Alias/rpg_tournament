@@ -2,6 +2,7 @@ use rand::prelude::*;
 use std::f32::consts::{SQRT_2, TAU};
 use std::time::Duration;
 use bevy::prelude::*;
+use crate::area::AreaLocal;
 use crate::common::CommonAssets;
 use crate::daynight::{GameTime, TIME_FRAC_MORNING, TIME_FRAC_NIGHT};
 
@@ -74,7 +75,7 @@ pub fn spawn_firefly(
         light.visibility = Visibility::Hidden;
     }
     commands
-        .spawn((firefly, light))
+        .spawn((firefly, light, AreaLocal::default()))
         .add_child(sphere_id);
 }
 

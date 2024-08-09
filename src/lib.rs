@@ -1,10 +1,11 @@
 mod map;
 mod action;
 mod act;
-mod overworld;
+mod area;
 mod camera;
 mod pixel;
 mod daynight;
+mod player;
 mod mobs;
 mod common;
 
@@ -26,14 +27,12 @@ impl Plugin for GamePlugin {
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             CameraProjectionPlugin::<DualProjection>::default(),
             PbrProjectionPlugin::<DualProjection>::default(),
-            pixel::PixelPlugin::default(),
         ));
 
-        // Lib
+        // States and resources
         app.init_state::<ScreenStates>();
         app.init_state::<DebugStates>();
         app.init_resource::<EntityIndex>();
-        app.init_resource::<AmbientLight>();
 
         // Observers
         app.observe(action::run_action);
@@ -41,7 +40,8 @@ impl Plugin for GamePlugin {
         app.observe(map::spawn_map);
         app.observe(map::despawn_map);
         app.observe(map::spawn_entity);
-        app.observe(overworld::init_overworld);
+        app.observe(player::spawn_player);
+        app.observe(area::init_world);
 
         // Daynight
         app.init_resource::<daynight::GameTime>();
@@ -49,21 +49,30 @@ impl Plugin for GamePlugin {
         // Map
         app.init_asset::<map::Map>();
         app.init_asset::<map::Tileset>();
-        app.init_asset::<map::MapWorld>();
+        app.init_asset::<map::Area>();
         app.init_asset_loader::<map::MapLoader>();
         app.init_asset_loader::<map::TilesetLoader>();
-        app.init_asset_loader::<map::MapWorldLoader>();
+        app.init_asset_loader::<map::AreaLoader>();
         
         // Common
         app.init_resource::<common::CommonAssets>();
 
         // Systems
+        app.add_systems(PreUpdate, (
+            map::process_loaded_maps,
+            area::stream_current_area,
+            area::despawn_area_locals,
+        ));
         app.add_systems(Update, (
             action::run_action_queues,
-            map::process_loaded_maps.after(action::run_action_queues),
-            camera::control_flycam.run_if(in_state(DebugStates::Enabled)),
             daynight::update_game_time,
-            mobs::update_fireflies,
+            player::move_players,
+            camera::control_flycam
+                .run_if(in_state(DebugStates::Enabled)),
+            mobs::update_fireflies
+                .after(daynight::update_game_time),
+            player::draw_players
+                .after(player::move_players),
         ));
     }
 }
@@ -87,13 +96,14 @@ pub enum ScreenStates {
 #[derive(Resource, Default, Debug)]
 pub struct EntityIndex {
     pub player: Option<Entity>,
-    pub maps: HashMap<&'static str, Entity>,
+    pub maps: HashMap<String, Entity>,
 }
 
 
 /// All high-level messages that drive application logic.
 pub mod messages {
-    pub use crate::overworld::messages::InitOverworld;
+    pub use crate::player::messages::SpawnPlayer;
+    pub use crate::area::messages::InitArea;
     pub use crate::map::messages::SpawnMap;
     pub use crate::map::messages::DespawnMap;
     pub use crate::action::messages::RunAction;

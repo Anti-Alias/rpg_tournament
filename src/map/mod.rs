@@ -1,8 +1,8 @@
-mod spawn;
+mod entities;
 mod loader;
 mod mesh;
 
-pub use spawn::*;
+pub use entities::*;
 pub use loader::*;
 
 use bevy::math::I16Vec2;
@@ -33,18 +33,12 @@ pub fn spawn_map(
     assets: Res<AssetServer>,
 ) {
     let message = trigger.event();
-    let (map_name, map_file) = (message.name, message.file);
-    if entities.maps.contains_key(map_name) {
-        panic!("Map '{}' already spawned", map_name);
-    }
+    let map_file = &message.file;
     let map_handle: Handle<Map> = assets.load(map_file);
     let map_transf = Transform::from_translation(message.position);
-    let map_entity = commands.spawn((
-        map_handle,
-        SpatialBundle::from_transform(map_transf),
-    )).id();
-    entities.maps.insert(map_name, map_entity);
-    log::info!("Spawned map `{map_name}`, file: `{map_file}`");
+    let map_entity = commands.spawn((map_handle, SpatialBundle::from_transform(map_transf))).id();
+    log::info!("Spawned map `{map_file}`");
+    entities.maps.insert(map_file.clone(), map_entity);
 }
 
 /// Despawns a [`Map`].
@@ -53,36 +47,38 @@ pub fn despawn_map(
     mut entities: ResMut<EntityIndex>,
     mut commands: Commands,
 ) {
-    let map_name = trigger.event().name;
-    let map_entity = match entities.maps.remove(map_name) {
+    let map_file = &trigger.event().file;
+    let map_entity = match entities.maps.remove(map_file) {
         Some(entity) => entity,
-        None => panic!("Map '{}' not spawned", map_name),
+        None => panic!("Map '{}' not spawned", map_file),
     };
     commands.entity(map_entity).despawn_recursive();
-    log::info!("Despawned map '{map_name}'");
+    log::info!("Despawned map '{map_file}'");
 }
 
 /// Monitors loading [`Map`] entities, and finalizes them once they finish loading.
 pub fn process_loaded_maps(
     mut commands: Commands,
-    mut map_entities: Query<(Entity, &Handle<Map>)>,
+    mut map_entities: Query<(Entity, &Handle<Map>, &Transform)>,
     map_assets: Res<Assets<Map>>,
     tileset_assets: Res<Assets<Tileset>>,
     mut material_assets: ResMut<Assets<StandardMaterial>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
 ) {
-    for (map_entity, map_handle) in &mut map_entities {
+    for (map_entity, map_handle, map_transf) in &mut map_entities {
         if asset_server.is_loaded_with_dependencies(map_handle) {
             process_map(
                 &mut commands,
                 map_entity,
+                map_transf.translation,
                 map_handle,
                 &map_assets,
                 &tileset_assets,
                 &mut material_assets,
                 &mut mesh_assets,
             );
+            commands.entity(map_entity).remove::<Handle<Map>>();
         }
     }
 }
@@ -90,6 +86,7 @@ pub fn process_loaded_maps(
 fn process_map(
     commands: &mut Commands,
     map_entity: Entity,
+    map_position: Vec3,
     map_handle: &Handle<Map>,
     map_assets: &Assets<Map>,
     tileset_assets: &Assets<Tileset>,
@@ -105,8 +102,8 @@ fn process_map(
                 group_layer,
                 layer.properties(),
                 layer.name(),
-                map_entity,
                 map,
+                map_entity,
                 tileset_assets,
                 material_assets,
                 mesh_assets,
@@ -117,14 +114,12 @@ fn process_map(
                 object_layer,
                 map.map.tile_height() as f32,
                 map.map.tile_height() as f32 * map.map.height() as f32,
+                map_position,
             ),
             tp::LayerKind::TileLayer(_) => panic!("Unexpected tile layer"),
             tp::LayerKind::ImageLayer(_) => panic!("Unexpected image layer"),
         }
     }
-    commands
-        .entity(map_entity)
-        .remove::<Handle<Map>>();
     log::info!("Finished map");
 }
 
@@ -133,8 +128,8 @@ fn process_group_layer(
     group_layer: &tp::GroupLayer,
     group_layer_props: &tp::Properties,
     group_layer_name: &str,
-    map_entity: Entity,
     map: &Map,
+    map_entity: Entity,
     tileset_assets: &Assets<Tileset>,
     material_assets: &mut Assets<StandardMaterial>,
     mesh_assets: &mut Assets<Mesh>,
@@ -304,6 +299,7 @@ fn process_object_layer(
     object_layer: &tp::ObjectGroupLayer,
     tile_height: f32,
     map_height_px: f32,
+    map_position: Vec3,
 ) {
     for object in object_layer.objects() {
         let props = object.properties();
@@ -311,7 +307,14 @@ fn process_object_layer(
             match (prop_name, prop_value) {
                 ("type", PropertyValue::String(typ)) => {
                     let entity_type = EntityType::parse(typ);
-                    spawn_object(commands, object, entity_type, tile_height, map_height_px);
+                    spawn_object(
+                        commands,
+                        object,
+                        entity_type,
+                        tile_height,
+                        map_height_px,
+                        map_position
+                    );
                 }
                 ("type", _) => panic!("Property 'type' not a string"),
                 _ => {}
@@ -326,8 +329,9 @@ fn spawn_object(
     entity_type: EntityType,
     tile_height: f32,
     map_height_px: f32,
+    map_position: Vec3,
 ) {
-    let mut position = Vec3::new(object.x(), 0.0, object.y() - map_height_px);
+    let mut position = map_position + Vec3::new(object.x(), 0.0, object.y() - map_height_px);
     for (prop_name, prop_value) in object.properties() {
         match (prop_name, prop_value) {
             ("lift", PropertyValue::Float(lift))    => { position += Vec3::new(0.0, *lift * tile_height, *lift * tile_height) }
@@ -336,13 +340,6 @@ fn spawn_object(
         }
     }
     commands.trigger(SpawnEntity { entity_type, position });
-}
-
-// Material with metadata
-struct Mat {
-    material: Handle<StandardMaterial>,
-    width: u32,
-    height: u32,
 }
 
 // Strip of two points that travels up a vertical column of tiles.
@@ -461,6 +458,13 @@ fn init_graphics_meshes(count: usize) -> Vec<GraphicsMesh> {
     result
 }
 
+// Material with metadata
+struct Mat {
+    material: Handle<StandardMaterial>,
+    width: u32,
+    height: u32,
+}
+
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 enum TileLayerType {
     Regular,
@@ -508,13 +512,14 @@ pub struct TilesetEntry {
     pub tileset: Handle<Tileset>,
 }
 
-#[derive(Asset, TypePath, Clone, Eq, PartialEq, Debug)]
-pub struct MapWorld(tiled_parser::World);
+/// A set of maps to dynamically load/unload.
+#[derive(Asset, TypePath, Deref, Clone, Eq, PartialEq, Debug)]
+pub struct Area(pub tiled_parser::World);
 
 /// A tileset referenced by a [`TilesetEntry`].
 #[derive(Asset, TypePath, Debug, Default)]
 pub struct Tileset {    
-    pub tileset: tp::Tileset,
+    pub tileset: tp::Tileset,   
     pub base_color: Color,
     pub base_color_texture: Handle<Image>,
     pub emissive: LinearRgba,
@@ -636,15 +641,15 @@ impl TileShape {
     fn quad_info(self) -> QuadInfo {
         match self {
             Self::FloorNE       => QuadInfo::TriangleFlipped,
-            Self::FloorWallSW   => QuadInfo::TriangleFlipped,
-            Self::FloorSlopeSW  => QuadInfo::TriangleFlipped,
-            Self::WallFloorSW   => QuadInfo::TriangleFlipped,
-            Self::WallNE        => QuadInfo::TriangleFlipped,
-            Self::SlopeNE       => QuadInfo::TriangleFlipped,
-            Self::SlopeFloorSW  => QuadInfo::TriangleFlipped,
             Self::FloorNW       => QuadInfo::Triangle,
+            Self::FloorWallSW   => QuadInfo::QuadFlipped,
+            Self::FloorSlopeSW  => QuadInfo::QuadFlipped,
+            Self::WallFloorSW   => QuadInfo::QuadFlipped,
+            Self::WallNE        => QuadInfo::TriangleFlipped,
             Self::WallNW        => QuadInfo::Triangle,
+            Self::SlopeNE       => QuadInfo::TriangleFlipped,
             Self::SlopeNW       => QuadInfo::Triangle,
+            Self::SlopeFloorSW  => QuadInfo::QuadFlipped,
             _ => QuadInfo::Quad,
         }
     }
@@ -652,14 +657,6 @@ impl TileShape {
     fn is_flipped(self) -> bool {
         match self.quad_info() {
             QuadInfo::QuadFlipped => true,
-            QuadInfo::TriangleFlipped => true,
-            _ => false,
-        }
-    }
-
-    fn is_triangle(self) -> bool {
-        match self.quad_info() {
-            QuadInfo::Triangle => true,
             QuadInfo::TriangleFlipped => true,
             _ => false,
         }
@@ -728,15 +725,14 @@ pub mod messages {
 
     use bevy::prelude::*;
 
-    #[derive(Event, Copy, Clone, PartialEq, Debug)]
+    #[derive(Event, Clone, PartialEq, Debug)]
     pub struct SpawnMap {
-        pub name: &'static str,
-        pub file: &'static str,
+        pub file: String,
         pub position: Vec3,
     }
 
-    #[derive(Event, Copy, Clone, Eq, PartialEq, Debug)]
+    #[derive(Event, Clone, Eq, PartialEq, Debug)]
     pub struct DespawnMap {
-        pub name: &'static str,
+        pub file: String,
     }
 }

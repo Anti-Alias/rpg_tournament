@@ -4,7 +4,7 @@ use bevy::asset::io::Reader;
 use tiled_parser as tp;
 use thiserror::*;
 
-use super::{Map, MapWorld, Tileset, TilesetEntry};
+use super::{Map, Area, Tileset, TilesetEntry};
 
 /// Loads a [`Map`].
 #[derive(Default)]
@@ -68,10 +68,7 @@ impl AssetLoader for MapLoader {
                 },
             }
         }
-        Ok(Map {
-            map,
-            tileset_entries,
-        })
+        Ok(Map { map, tileset_entries })
     }
 
     fn extensions(&self) -> &[&str] {
@@ -134,25 +131,25 @@ impl AssetLoader for TilesetLoader {
 
 
 #[derive(Default)]
-pub struct MapWorldLoader {}
-impl AssetLoader for MapWorldLoader {
-    type Asset = MapWorld;
+pub struct AreaLoader {}
+impl AssetLoader for AreaLoader {
+    type Asset = Area;
     type Settings = ();
-    type Error = MapWorldLoadError;
+    type Error = AreaLoadError;
 
     async fn load<'a>(
         &'a self,
         reader: &'a mut Reader<'_>,
         _settings: &'a (),
-        load_context: &'a mut LoadContext<'_>,
-    ) -> Result<MapWorld, MapWorldLoadError>
+        _load_context: &'a mut LoadContext<'_>,
+    ) -> Result<Area, AreaLoadError>
     {
         // Reads tileset bytes
         let mut bytes = vec![];
         reader.read_to_end(&mut bytes).await?;
 
         let map_world = tp::World::parse(bytes.as_slice())?;
-        Ok(MapWorld(map_world))
+        Ok(Area(map_world))
     }
 
     fn extensions(&self) -> &[&str] {
@@ -171,7 +168,7 @@ pub enum MapLoadError {
 
 #[derive(Error, Debug)]
 #[error(transparent)]
-pub enum MapWorldLoadError {
+pub enum AreaLoadError {
     IOError(#[from] std::io::Error),
     MapError(#[from] tp::Error),
 }

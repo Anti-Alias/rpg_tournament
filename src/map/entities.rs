@@ -9,9 +9,9 @@ pub fn spawn_entity(
     game_time: Res<GameTime>,
     mut commands: Commands,
 ) {
-    let event = trigger.event();
-    match event.entity_type {
-        EntityType::Firefly => crate::mobs::spawn_firefly(&mut commands, event.position, &common_assets, game_time.time_fraction()),
+    let message = trigger.event();
+    match message.entity_type {
+        EntityType::Firefly => crate::mobs::spawn_firefly(&mut commands, message.position, &common_assets, game_time.time_fraction()),
     }
 }
 

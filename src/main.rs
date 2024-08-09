@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use rpg_tournament::GamePlugin;
-use rpg_tournament::messages::{InitOverworld, SpawnMap};
+use rpg_tournament::messages::*;
 
 fn main() {
     App::new()
@@ -11,10 +11,6 @@ fn main() {
 
 
 fn startup(mut commands: Commands) {
-    commands.trigger(InitOverworld);
-    commands.trigger(SpawnMap {
-        name: "Map",
-        file: "maps/test_map_2.tmx",
-        position: Vec3::ZERO
-    });
+    commands.trigger(InitArea { name: "Overworld", file: "worlds/overworld.world" });
+    commands.trigger(SpawnPlayer { position: Vec3::new(0.0, 32.0, 0.0) });
 }
