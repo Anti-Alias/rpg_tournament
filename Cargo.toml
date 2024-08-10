@@ -3,13 +3,17 @@ name = "rpg_tournament"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
+[dev-dependencies]
 bevy = { version = "0.14", features = ["dynamic_linking"] }
-bitflags = "2.6.0"
-extension-trait = "1.0.2"
-rand = "0.8.5"
-smallvec = "1.13.2"
-thiserror = "1.0.63"
+
+[dependencies]
+bevy = { version = "0.14" }
+bevy-inspector-egui = "0.25.1"
+bitflags = "2"
+extension-trait = "1"
+rand = "0.8"
+smallvec = "1"
+thiserror = "1"
 tiled-parser = { git="https://github.com/Anti-Alias/tiled-parser.git", default-features = false, features=["flate2"], branch="master" }
 
 [profile.dev]
@@ -17,3 +21,6 @@ opt-level = 1
 
 [profile.dev.package."*"]
 opt-level = 3
+
+[features]
+debug = []

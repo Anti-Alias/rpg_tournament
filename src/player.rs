@@ -1,6 +1,10 @@
 use bevy::prelude::*;
 use messages::SpawnPlayer;
 use crate::area::AreaStreamer;
+use crate::pixel::Round;
+use crate::EntityIndex;
+
+const PLAYER_DRAW_SIZE: Vec3 = Vec3::new(16.0, 16.0, 16.0);
 
 #[derive(Component, Copy, Clone, PartialEq, Debug)]
 pub struct Player {
@@ -17,22 +21,26 @@ impl Default for Player {
 
 pub fn spawn_player(
     trigger: Trigger<SpawnPlayer>,
+    mut entity_index: ResMut<EntityIndex>,
     mut commands: Commands,
 ) {
     let message = trigger.event();
-    commands.spawn((
+    let player_id = commands.spawn((
+        Name::new("player"),
         Player::default(),
         AreaStreamer {
-            size: Vec2::new(256.0, 256.0),
+            size: Vec2::splat(32.0 * 40.0),
         },
         SpatialBundle {
             transform: Transform::from_translation(message.position),
             ..default()
-        }
-    ));
+        },
+        Round,
+    )).id();
+    entity_index.player = Some(player_id);
 }
 
-pub fn move_players(
+pub fn update_players(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut players: Query<(&Player, &mut Transform)>,
     time: Res<Time>,
@@ -58,11 +66,16 @@ pub fn move_players(
 
 pub fn draw_players(
     mut gizmos: Gizmos,
-    players: Query<(&Transform, &AreaStreamer), With<Player>>,
+    players: Query<&Transform, With<Player>>,
 ) {
-    for (transf, streamer) in &players {
-        let pos = Vec2::new(transf.translation.x, transf.translation.y - transf.translation.z);
-        gizmos.rect_2d(pos, 0.0, streamer.size, Color::WHITE);
+    for transf in &players {
+        let offset = Vec3::new(0.0, PLAYER_DRAW_SIZE.y / 2.0, 0.0);
+        let transform = Transform {
+            translation: transf.translation + offset,
+            rotation: Quat::IDENTITY,
+            scale: PLAYER_DRAW_SIZE,
+        };
+        gizmos.cuboid(transform, Color::WHITE);
     }
 }
 

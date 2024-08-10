@@ -8,14 +8,17 @@ mod daynight;
 mod player;
 mod mobs;
 mod common;
+mod debug;
 
 use bevy::pbr::PbrProjectionPlugin;
 use bevy::render::camera::CameraProjectionPlugin;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use camera::DualProjection;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 
 pub use action::ActionKind;
+use debug::DebugStates;
 
 
 /// Game engine plugin.
@@ -27,11 +30,12 @@ impl Plugin for GamePlugin {
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             CameraProjectionPlugin::<DualProjection>::default(),
             PbrProjectionPlugin::<DualProjection>::default(),
+            WorldInspectorPlugin::default().run_if(in_state(DebugStates::Enabled)),
         ));
 
         // States and resources
         app.init_state::<ScreenStates>();
-        app.init_state::<DebugStates>();
+        app.init_state::<debug::DebugStates>();
         app.init_resource::<EntityIndex>();
 
         // Observers
@@ -41,7 +45,7 @@ impl Plugin for GamePlugin {
         app.observe(map::despawn_map);
         app.observe(map::spawn_entity);
         app.observe(player::spawn_player);
-        app.observe(area::init_world);
+        app.observe(area::init_area);
 
         // Daynight
         app.init_resource::<daynight::GameTime>();
@@ -57,33 +61,66 @@ impl Plugin for GamePlugin {
         // Common
         app.init_resource::<common::CommonAssets>();
 
+        // System sets
+        app.configure_sets(Update, (
+            GameSets::Flush.after(GameSets::PreLogic),
+            GameSets::Logic.after(GameSets::Flush),
+            GameSets::PostLogic.after(GameSets::Logic),
+        ));
+
         // Systems
-        app.add_systems(PreUpdate, (
-            map::process_loaded_maps,
-            area::stream_current_area,
-            area::despawn_area_locals,
-        ));
         app.add_systems(Update, (
-            action::run_action_queues,
-            daynight::update_game_time,
-            player::move_players,
-            camera::control_flycam
-                .run_if(in_state(DebugStates::Enabled)),
-            mobs::update_fireflies
-                .after(daynight::update_game_time),
-            player::draw_players
-                .after(player::move_players),
+
+            /////////////// PreLogic ///////////////
+            (
+                action::run_action_queues,
+                map::process_loaded_maps,
+                area::stream_current_area,
+                area::despawn_area_locals,
+                daynight::update_game_time,
+                area::reload_area
+                    .run_if(in_state(DebugStates::Enabled)),
+            ).in_set(GameSets::PreLogic),
+
+            /////////////// Flush ///////////////
+            apply_deferred.in_set(GameSets::Flush),
+
+            /////////////// Logic ///////////////
+            (
+                player::update_players,
+                mobs::update_fireflies,
+                debug::toggle_debug,
+                camera::update_flycam,
+                (
+                    camera::toggle_projection,
+                    camera::toggle_flycam,
+                ).run_if(in_state(DebugStates::Enabled)),
+                player::draw_players
+                    .after(player::update_players),
+            ).in_set(GameSets::Logic),
+
+            /////////////// PostLogic ///////////////
+            camera::update_game_camera.in_set(GameSets::PostLogic),
         ));
+
+        app.add_systems(OnEnter(DebugStates::Disabled), camera::handle_disable_debug);
+
+        // Misc systems
+        app.add_systems(
+            PostUpdate,
+            pixel::round_positions.after(TransformSystem::TransformPropagate)
+        );
     }
 }
 
-
-#[derive(States, Clone, Eq, PartialEq, Hash, Default, Debug)]
-pub enum DebugStates {
-    #[default]
-    Enabled,
-    Disabled,
+#[derive(SystemSet, Copy, Clone, Eq, PartialEq, Debug, Hash)]
+pub enum GameSets {
+    PreLogic,
+    Flush,
+    Logic,
+    PostLogic,
 }
+
 
 #[derive(States, Clone, Eq, PartialEq, Hash, Default, Debug)]
 pub enum ScreenStates {

@@ -75,7 +75,7 @@ pub fn spawn_firefly(
         light.visibility = Visibility::Hidden;
     }
     commands
-        .spawn((firefly, light, AreaLocal::default()))
+        .spawn((Name::new("firefly"), firefly, light, AreaLocal::default()))
         .add_child(sphere_id);
 }
 

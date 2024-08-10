@@ -1,12 +1,10 @@
 use std::f32::consts::PI;
-use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
-use crate::camera::{Flycam, GameCameraBundle};
+use crate::camera::GameCameraBundle;
 use crate::daynight::Sunlight;
 use crate::map::Area;
 use crate::messages::{DespawnMap, SpawnMap};
-use crate::pixel::Round;
 
 
 /// Keeps track of the current map world.
@@ -18,6 +16,7 @@ pub struct CurrentArea {
 }
 
 impl CurrentArea {
+
     fn is_touching_rect(&self, rect: Rect) -> bool {
         for map_rect in self.loaded_maps.values() {
             if rects_touching(*map_rect, rect) {
@@ -35,7 +34,7 @@ fn rects_touching(a: Rect, b: Rect) -> bool {
 
 /// Sets up environment for dynamically loading/unloading maps from a map world.
 /// Unloads existing world if already set.
-pub fn init_world(
+pub fn init_area(
     trigger: Trigger<messages::InitArea>,
     current_area: Option<ResMut<CurrentArea>>,
     assets: Res<AssetServer>,
@@ -48,22 +47,18 @@ pub fn init_world(
             current_area.area = assets.load(message.file);
         },
         None => {
-            let mut dir_light = DirectionalLightBundle::default();
-            dir_light.directional_light.shadows_enabled = true;
-            dir_light.directional_light.illuminance *= 0.5;
-            dir_light.transform.rotate(Quat::from_euler(EulerRot::YXZ, PI/4.0, -PI/4.0, 0.0));
-            commands.spawn((dir_light, Sunlight::default()));
-    
-            let mut camera = GameCameraBundle::default();
-            camera.projection.t = 0.0;
-            camera.color_grading.global.post_saturation = 1.1;
-            camera.projection.perspective = PerspectiveProjection { near: 16.0, ..default() };
-            camera.projection.orthographic.far = 10000.0;
-            camera.projection.orthographic.scale = 0.5;
-            camera.transform = Transform::from_xyz(128.0, 256.0, 256.0).looking_to(Vec3::new(0.0, -1.0, -1.0), Vec3::Y);
-            camera.tonemapping = Tonemapping::None;
-            commands.spawn((camera, Flycam::default(), Round));
 
+            // Spawns sun
+            let mut sun = DirectionalLightBundle::default();
+            sun.directional_light.shadows_enabled = true;
+            sun.directional_light.illuminance *= 0.5;
+            sun.transform.rotate(Quat::from_euler(EulerRot::YXZ, PI/4.0, -PI/4.0, 0.0));
+            commands.spawn((Name::new("sun"), sun, Sunlight::default()));
+    
+            // Spawns camera
+            commands.spawn((Name::new("camera"), GameCameraBundle::default()));
+
+            // Configures area, which will stream in maps into the world
             let area = assets.load::<Area>(message.file);
             commands.insert_resource(CurrentArea {
                 name: message.name,
@@ -72,6 +67,20 @@ pub fn init_world(
             })
         },
         _ => {},
+    }
+}
+
+/// Forces all spawned maps to reload when the user hits a key combo.
+pub fn reload_area(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut current_area: ResMut<CurrentArea>,
+    mut commands: Commands,
+) {
+    if keyboard.just_pressed(KeyCode::F5) {
+        let loaded_maps = std::mem::take(&mut current_area.loaded_maps);
+        for map_path in loaded_maps.into_keys() {
+            commands.trigger(DespawnMap { file: map_path });
+        }
     }
 }
 

@@ -1,19 +1,20 @@
 use std::f32::consts::{PI, SQRT_2};
-
+use bevy::prelude::*;
 use bevy::core_pipeline::core_3d::graph::Core3d;
 use bevy::core_pipeline::tonemapping::{DebandDither, Tonemapping};
-use bevy::input::mouse::{MouseMotion, MouseWheel};
+use bevy::input::mouse::MouseMotion;
 use bevy::math::Vec3A;
-use bevy::prelude::*;
 use bevy::render::camera::{CameraMainTextureUsages, CameraProjection, CameraRenderGraph, Exposure};
 use bevy::render::primitives::Frustum;
 use bevy::render::view::{ColorGrading, VisibleEntities};
+use crate::EntityIndex;
 
 
 /// Copied from bevy's Camera3dBundle.
 /// TODO: Update when bevy updates.
 #[derive(Bundle, Clone)]
 pub struct GameCameraBundle {
+    pub game_camera: GameCamera,
     pub camera: Camera,
     pub camera_render_graph: CameraRenderGraph,
     pub projection: DualProjection,
@@ -31,7 +32,8 @@ pub struct GameCameraBundle {
 
 impl Default for GameCameraBundle {
     fn default() -> Self {
-        Self {
+        let mut camera = Self {
+            game_camera: GameCamera::default(),
             camera_render_graph: CameraRenderGraph::new(Core3d),
             camera: Default::default(),
             projection: Default::default(),
@@ -45,8 +47,37 @@ impl Default for GameCameraBundle {
             exposure: Default::default(),
             main_texture_usages: Default::default(),
             deband_dither: DebandDither::Enabled,
+        };
+        camera.color_grading.global.post_saturation = 1.1;
+        camera.projection.perspective = PerspectiveProjection { near: 16.0, ..default() };
+        camera.projection.orthographic.far = 10000.0;
+        camera.projection.orthographic.scale = 0.5;
+        camera.transform = Transform::from_xyz(128.0, 256.0, 256.0).looking_to(Vec3::new(0.0, -1.0, -1.0), Vec3::Y);
+        camera.tonemapping = Tonemapping::None;
+        camera
+    }
+}
+
+/// Causes a camera to follow a target entity.
+#[derive(Component, Clone, PartialEq, Debug)]
+pub struct GameCamera {
+    pub target: Option<CameraTarget>,
+    pub offset: Vec3,
+}
+
+impl Default for GameCamera {
+    fn default() -> Self {
+        Self {
+            target: Some(CameraTarget::Player),
+            offset: Vec3::new(0.0, 256.0, 256.0),
         }
     }
+}
+
+/// Which target a [`GameCamera`] should follow.
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub enum CameraTarget {
+    Player,
 }
 
 
@@ -56,7 +87,6 @@ pub struct Flycam {
     pub yaw: f32,
     pub pitch: f32,
     pub mouse_sensitivity: f32,
-    pub wheel_sensitivity: f32,
 }
 
 impl Flycam {
@@ -72,7 +102,23 @@ impl Default for Flycam {
             yaw: 0.0,
             pitch: -PI/4.0,
             mouse_sensitivity: 0.005,
-            wheel_sensitivity: 0.1,
+        }
+    }
+}
+
+
+#[derive(Reflect, Copy, Clone, Eq, PartialEq, Default, Debug)]
+pub enum ProjectionKind {
+    #[default]
+    Orthographic,
+    Perspective,
+}
+
+impl ProjectionKind {
+    pub fn toggle(self) -> Self {
+        match self {
+            Self::Orthographic => Self::Perspective,
+            Self::Perspective => Self::Orthographic,
         }
     }
 }
@@ -80,86 +126,69 @@ impl Default for Flycam {
 #[derive(Component, Debug, Clone, Default, Reflect)]
 #[reflect(Component, Default)]
 pub struct DualProjection {
+    pub kind: ProjectionKind,
     pub orthographic: OrthographicProjection,
     pub perspective: PerspectiveProjection,
-    pub t: f32,
 }
-
-const ORTHO_SCALE: Mat4 =  Mat4::from_cols_array(
-    &[
-        1.0, 0.0, 0.0, 0.0,
-        0.0, SQRT_2, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0,
-    ]
-);
-
-const ORTHO_SCALE_3: Mat3 =  Mat3::from_cols_array(
-    &[
-        1.0, 0.0, 0.0,
-        0.0, SQRT_2, 0.0,
-        0.0, 0.0, 1.0,
-    ]
-);
 
 impl CameraProjection for DualProjection {    
     fn get_clip_from_view(&self) -> Mat4 {
-        let ortho_clip = ORTHO_SCALE * self.orthographic.get_clip_from_view();
-        let perspective_clip = self.perspective.get_clip_from_view();
-        interp_mat4(ortho_clip, perspective_clip, self.t)
-    }
-
-    fn update(&mut self, width: f32, height: f32) {
-        self.orthographic.update(width, height);
-        self.perspective.update(width, height);
-    }
-
-    fn far(&self) -> f32 {
-        let ortho_far = self.orthographic.far();
-        let perspective_far = self.perspective.far();
-        ortho_far + (perspective_far - ortho_far) * self.t
-    }
-
-    fn get_frustum_corners(&self, z_near: f32, z_far: f32) -> [Vec3A; 8] {
-        let ortho_corners = self.orthographic.get_frustum_corners(z_near, z_far);
-        let perspective_corners = self.perspective.get_frustum_corners(z_near, z_far);
-        let mut result = [Vec3A::ZERO; 8];
-        for i in 0..8 {
-            let ortho_corner = ORTHO_SCALE_3 * Vec3::from(ortho_corners[i]);
-            let persp_corner = Vec3::from(perspective_corners[i]);
-            let corner = ortho_corner + (persp_corner - ortho_corner) * self.t;
-            result[i] = Vec3A::from(corner);
+        match self.kind {
+            ProjectionKind::Orthographic => self.orthographic.get_clip_from_view() * Mat4::from_scale(Vec3::new(1.0, SQRT_2, 1.0)),
+            ProjectionKind::Perspective => self.perspective.get_clip_from_view(),
         }
-        result
+    }
+    fn update(&mut self, width: f32, height: f32) {
+        match self.kind {
+            ProjectionKind::Orthographic => self.orthographic.update(width, height),
+            ProjectionKind::Perspective => self.perspective.update(width, height),
+        }
+    }
+    fn far(&self) -> f32 {
+        match self.kind {
+            ProjectionKind::Orthographic => self.orthographic.far(),
+            ProjectionKind::Perspective => self.perspective.far(),
+        }
+    }
+    fn get_frustum_corners(&self, z_near: f32, z_far: f32) -> [Vec3A; 8] {
+        match self.kind {
+            ProjectionKind::Orthographic => self.orthographic.get_frustum_corners(z_near, z_far),
+            ProjectionKind::Perspective => self.perspective.get_frustum_corners(z_near, z_far),
+        }
     }
 }
 
-fn interp_mat4(a: Mat4, b: Mat4, t: f32) -> Mat4 {
-    let segment = CubicSegment::new_bezier([1.0, 0.2], [0.6, 0.0]);
-    let t = segment.ease(t);
-    let t = segment.ease(t);
-    let t = segment.ease(t);
-    let a_cols = a.to_cols_array();
-    let b_cols = b.to_cols_array();
-    let mut result = [0.0; 16];
-    for i in 0..a_cols.len() {
-        result[i] = a_cols[i] + (b_cols[i] - a_cols[i]) * t;
+pub fn update_game_camera(
+    mut cameras: Query<(&mut GameCamera, &mut Transform), Without<Flycam>>,
+    targets: Query<&Transform, Without<GameCamera>>,
+    entity_index: Res<EntityIndex>,
+) {
+    for (mut game_camera, mut cam_transf) in &mut cameras {
+        let target_entity = match game_camera.target {
+            Some(CameraTarget::Player)          => entity_index.player,
+            _                                   => None,
+        };
+        let Some(target_entity) = target_entity else { continue };
+        let Ok(target_transf) = targets.get(target_entity) else {
+            game_camera.target = None;
+            continue;
+        };
+        cam_transf.translation = target_transf.translation + game_camera.offset;
+        cam_transf.look_at(target_transf.translation, Vec3::Y);
     }
-    Mat4::from_cols_array(&result)
 }
 
 
-pub fn control_flycam(
-    mut flycams: Query<(&mut Transform, &mut Flycam, &mut DualProjection)>,
+pub fn update_flycam(
+    mut flycams: Query<(&mut Flycam, &mut Transform)>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
     mut mouse_motions: EventReader<MouseMotion>,
-    mut mouse_wheels: EventReader<MouseWheel>,
     time: Res<Time>,
 ) {
     const EPS: f32 = 0.001;
     let secs = time.delta_seconds();
-    for (mut transform, mut flycam, mut projection) in &mut flycams {
+    for (mut flycam, mut transform) in &mut flycams {
 
         // Rotates flycam
         if mouse.pressed(MouseButton::Middle) {
@@ -169,12 +198,6 @@ pub fn control_flycam(
                 flycam.pitch = flycam.pitch.min(PI/2.0 - EPS).max(-PI/2.0 + EPS);
                 *transform = transform.looking_to(flycam.direction(), Vec3::Y);
             }
-        }
-
-        // Interpolates between orthographic and perspective
-        for mouse_wheel in mouse_wheels.read() {
-            projection.t += mouse_wheel.y * flycam.wheel_sensitivity;
-            projection.t = projection.t.min(1.0).max(0.0);
         }
 
         // Resets camera rotation
@@ -209,5 +232,46 @@ pub fn control_flycam(
             movement -= up * flycam.speed * secs;
         }
         transform.translation += movement;
+    }
+}
+
+pub fn toggle_projection(
+    mut cameras: Query<&mut DualProjection, With<GameCamera>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::KeyP) {
+        for mut cam_proj in &mut cameras {
+            cam_proj.kind = cam_proj.kind.toggle();
+        }
+    }
+}
+
+pub fn toggle_flycam(
+    cameras: Query<
+        (Entity, Option<&Flycam>),
+        With<GameCamera>
+    >,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+) {
+    if keyboard.just_pressed(KeyCode::KeyF) {
+        for (camera_id, flycam) in &cameras {
+            if flycam.is_none() {
+                commands.entity(camera_id).insert(Flycam::default());
+            }
+            else {
+                commands.entity(camera_id).remove::<Flycam>();
+            }
+        }
+    }
+}
+
+pub fn handle_disable_debug(
+    mut commands: Commands,
+    mut cameras: Query<(Entity, &mut DualProjection), With<GameCamera>>
+) {
+    for (cam_id, mut cam_proj) in &mut cameras {
+        cam_proj.kind = ProjectionKind::default();
+        commands.entity(cam_id).remove::<Flycam>();
     }
 }

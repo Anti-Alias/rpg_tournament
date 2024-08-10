@@ -36,7 +36,11 @@ pub fn spawn_map(
     let map_file = &message.file;
     let map_handle: Handle<Map> = assets.load(map_file);
     let map_transf = Transform::from_translation(message.position);
-    let map_entity = commands.spawn((map_handle, SpatialBundle::from_transform(map_transf))).id();
+    let map_entity = commands.spawn((
+        Name::new(format!("map-chunk-{}", map_file)),
+        MapStatus::Loading(map_handle),
+        SpatialBundle::from_transform(map_transf)
+    )).id();
     log::info!("Spawned map `{map_file}`");
     entities.maps.insert(map_file.clone(), map_entity);
 }
@@ -59,26 +63,30 @@ pub fn despawn_map(
 /// Monitors loading [`Map`] entities, and finalizes them once they finish loading.
 pub fn process_loaded_maps(
     mut commands: Commands,
-    mut map_entities: Query<(Entity, &Handle<Map>, &Transform)>,
-    map_assets: Res<Assets<Map>>,
-    tileset_assets: Res<Assets<Tileset>>,
+    mut map_entities: Query<(Entity, &mut MapStatus, &Transform)>,
     mut material_assets: ResMut<Assets<StandardMaterial>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
+    tileset_assets: Res<Assets<Tileset>>,
+    map_assets: Res<Assets<Map>>,
     asset_server: Res<AssetServer>,
 ) {
-    for (map_entity, map_handle, map_transf) in &mut map_entities {
+    for (map_entity, mut map_status, map_transf) in &mut map_entities {
+        let MapStatus::Loading(ref map_handle) = *map_status else {
+            continue;
+        };
         if asset_server.is_loaded_with_dependencies(map_handle) {
+            commands.entity(map_entity).despawn_descendants();
             process_map(
                 &mut commands,
                 map_entity,
                 map_transf.translation,
-                map_handle,
+                &map_handle,
                 &map_assets,
                 &tileset_assets,
                 &mut material_assets,
                 &mut mesh_assets,
             );
-            commands.entity(map_entity).remove::<Handle<Map>>();
+            *map_status = MapStatus::Loaded;
         }
     }
 }
@@ -340,6 +348,12 @@ fn spawn_object(
         }
     }
     commands.trigger(SpawnEntity { entity_type, position });
+}
+
+#[derive(Component, Clone, Eq, PartialEq, Debug)]
+pub enum MapStatus {
+    Loading(Handle<Map>),
+    Loaded,
 }
 
 // Strip of two points that travels up a vertical column of tiles.
