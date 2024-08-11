@@ -14,7 +14,8 @@ extension-trait = "1"
 rand = "0.8"
 smallvec = "1"
 thiserror = "1"
-tiled-parser = { git="https://github.com/Anti-Alias/tiled-parser.git", default-features = false, features=["flate2"], branch="master" }
+bevy_mod_sprite3d = { git="https://github.com/Anti-Alias/bevy_mod_sprite3d.git", commit="62b08482ca3ec04a3d8ee70a9652a0e1ee4febbc" }
+tiled-parser = { git="https://github.com/Anti-Alias/tiled-parser.git", default-features = false, features=["flate2"], commit="8f9c9b3def29363d5d4a3f4089076966eb9c96d3" }
 
 [profile.dev]
 opt-level = 1

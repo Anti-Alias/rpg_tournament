@@ -846,6 +846,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_mod_sprite3d"
+version = "0.1.0"
+source = "git+https://github.com/Anti-Alias/bevy_mod_sprite3d.git#62b08482ca3ec04a3d8ee70a9652a0e1ee4febbc"
+dependencies = [
+ "bevy",
+ "bevy_app",
+ "bevy_asset",
+ "bevy_color",
+ "bevy_ecs",
+ "bevy_math",
+ "bevy_pbr",
+ "bevy_reflect",
+ "bevy_render",
+ "bevy_sprite",
+ "bevy_transform",
+ "bevy_utils",
+]
+
+[[package]]
 name = "bevy_pbr"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3440,6 +3459,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
+ "bevy_mod_sprite3d",
  "bitflags 2.6.0",
  "extension-trait",
  "rand",
@@ -3763,7 +3783,7 @@ dependencies = [
 [[package]]
 name = "tiled-parser"
 version = "0.1.0"
-source = "git+https://github.com/Anti-Alias/tiled-parser.git?branch=master#8f9c9b3def29363d5d4a3f4089076966eb9c96d3"
+source = "git+https://github.com/Anti-Alias/tiled-parser.git#8f9c9b3def29363d5d4a3f4089076966eb9c96d3"
 dependencies = [
  "base64 0.21.7",
  "flate2",
