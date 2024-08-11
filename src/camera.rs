@@ -225,10 +225,10 @@ pub fn update_flycam(
         if keyboard.pressed(KeyCode::KeyS) {
             movement -= forwards * flycam.speed * secs;
         }
-        if keyboard.pressed(KeyCode::KeyE) {
+        if keyboard.pressed(KeyCode::Space) {
             movement += up * flycam.speed * secs;
         }
-        if keyboard.pressed(KeyCode::KeyQ) {
+        if keyboard.pressed(KeyCode::ShiftLeft) {
             movement -= up * flycam.speed * secs;
         }
         transform.translation += movement;
