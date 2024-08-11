@@ -1,3 +1,5 @@
+![recording-1](recordings/recording-1.mp4)
+
 ## Debug Mode
 Press CTRL+D to toggle debug mode on and off.
 
