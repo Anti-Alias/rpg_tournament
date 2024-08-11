@@ -1,7 +1,8 @@
-![recording-1](recordings/recording-1.mp4)
+[recording-1.webm](https://github.com/user-attachments/assets/c8cf1597-cafd-430f-929e-07cd0c77e645)
 
 ## Debug Mode
 Press CTRL+D to toggle debug mode on and off.
+
 
 ## Debug Mode Keys
 - **P**: Toggle camera projection.
