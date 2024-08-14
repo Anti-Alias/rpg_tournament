@@ -7,6 +7,7 @@ use bevy::math::Vec3A;
 use bevy::render::camera::{CameraMainTextureUsages, CameraProjection, CameraRenderGraph, Exposure};
 use bevy::render::primitives::Frustum;
 use bevy::render::view::{ColorGrading, VisibleEntities};
+use crate::round::Round;
 use crate::EntityIndex;
 
 
@@ -28,6 +29,7 @@ pub struct GameCameraBundle {
     pub color_grading: ColorGrading,
     pub exposure: Exposure,
     pub main_texture_usages: CameraMainTextureUsages,
+    pub round: Round,
 }
 
 impl Default for GameCameraBundle {
@@ -47,6 +49,7 @@ impl Default for GameCameraBundle {
             exposure: Default::default(),
             main_texture_usages: Default::default(),
             deband_dither: DebandDither::Enabled,
+            round: Round,
         };
         camera.color_grading.global.post_saturation = 1.1;
         camera.projection.perspective = PerspectiveProjection { near: 16.0, ..default() };
@@ -158,7 +161,7 @@ impl CameraProjection for DualProjection {
     }
 }
 
-pub fn update_game_camera(
+pub fn follow_target(
     mut cameras: Query<(&mut GameCamera, &mut Transform), Without<Flycam>>,
     targets: Query<&Transform, Without<GameCamera>>,
     entity_index: Res<EntityIndex>,

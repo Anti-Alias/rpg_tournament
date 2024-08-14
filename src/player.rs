@@ -1,13 +1,10 @@
-use bevy::color::palettes::css::WHITE;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use bevy_mod_sprite3d::*;
 use messages::SpawnPlayer;
 use crate::area::AreaStreamer;
-use crate::pixel::Round;
+use crate::round::Round;
 use crate::EntityIndex;
-
-const PLAYER_DRAW_SIZE: Vec3 = Vec3::new(16.0, 16.0, 16.0);
 
 #[derive(Component, Copy, Clone, PartialEq, Debug)]
 pub struct Player { pub speed: f32 }
@@ -40,7 +37,7 @@ pub fn spawn_player(
         reflectance: 0.0,
         perceptual_roughness: 1.0,
         cull_mode: None,
-        //alpha_mode: AlphaMode::Mask(0.5),
+        alpha_mode: AlphaMode::Mask(0.5),
         double_sided: true,
         ..default()
     });
@@ -48,7 +45,7 @@ pub fn spawn_player(
     // Spawns player
     let mut player_sprite = Sprite3dBundle::<StandardMaterial>::default();
     player_sprite.sprite3d.rect = Some(Rect::new(0.0, 0.0, 64.0, 64.0));
-    player_sprite.sprite3d.anchor = Anchor::Custom(Vec2::new(0.0, -0.2));
+    player_sprite.sprite3d.anchor = Anchor::Custom(Vec2::new(0.0, -0.19));
     player_sprite.transform  = Transform::from_translation(message.position);
     player_sprite.material = player_mat;
     let player_id = commands.spawn((
@@ -56,10 +53,9 @@ pub fn spawn_player(
         Player::default(),
         AreaStreamer { size: Vec2::splat(32.0 * 40.0) },
         player_sprite,
+        Round,
     )).id();
     entity_index.player = Some(player_id);
-
-
 }
 
 pub fn update_players(
@@ -85,22 +81,6 @@ pub fn update_players(
         transf.translation += direction * player.speed * time.delta_seconds();
     }
 }
-
-pub fn draw_players(
-    mut gizmos: Gizmos,
-    players: Query<&Transform, With<Player>>,
-) {
-    for transf in &players {
-        let offset = Vec3::new(0.0, PLAYER_DRAW_SIZE.y / 2.0, 0.0);
-        let transform = Transform {
-            translation: transf.translation + offset,
-            rotation: Quat::IDENTITY,
-            scale: PLAYER_DRAW_SIZE,
-        };
-        gizmos.cuboid(transform, Color::WHITE);
-    }
-}
-
 
 pub mod messages {
 

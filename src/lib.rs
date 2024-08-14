@@ -3,7 +3,7 @@ mod action;
 mod act;
 mod area;
 mod camera;
-mod pixel;
+mod round;
 mod daynight;
 mod player;
 mod mobs;
@@ -103,7 +103,10 @@ impl Plugin for GamePlugin {
             ).in_set(GameSystems::Logic),
 
             /////////////// PostLogic ///////////////
-            camera::update_game_camera.in_set(GameSystems::PostLogic),
+            (
+                camera::follow_target,
+                round::round_positions.after(camera::follow_target),
+            ).in_set(GameSystems::PostLogic),
         ));
 
         app.add_systems(OnEnter(DebugStates::Disabled), camera::handle_disable_debug);
@@ -111,7 +114,7 @@ impl Plugin for GamePlugin {
         // Misc systems
         app.add_systems(
             PostUpdate,
-            pixel::round_positions
+            round::round_positions
                 .after(TransformSystem::TransformPropagate)
                 .before(Sprite3dSystems),
         );
