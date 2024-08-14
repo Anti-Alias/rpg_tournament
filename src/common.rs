@@ -1,28 +1,24 @@
 use bevy::prelude::*;
+use crate::animation::AnimationSet;
 
+/// Resource that stores simple, common assets used across the application.
+/// These assets are generally lightweight.
 #[derive(Resource, Debug)]
 pub struct CommonAssets {
     pub meshes: CommonMeshes,
     pub materials: CommonMaterials,
+    pub animations: CommonAnimations,
 }
 
 impl FromWorld for CommonAssets {
     fn from_world(world: &mut World) -> Self {
-
-        let mut mesh_assets = world.resource_mut::<Assets<Mesh>>();
-        let meshes = CommonMeshes {
-            sphere: mesh_assets.add(Sphere::new(1.0)),
-        };
-
-        let mut material_assets = world.resource_mut::<Assets<StandardMaterial>>();
-        let materials = CommonMaterials {
-            white: material_assets.add(StandardMaterial {
-                base_color: Color::WHITE,
-                unlit: true,
-                ..default()
-            }),
-        };
-        Self { meshes, materials }
+        let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
+        let materials = CommonMaterials::new(&mut materials);
+        let mut meshes = world.resource_mut::<Assets<Mesh>>();
+        let meshes = CommonMeshes::new(&mut meshes);
+        let mut animations = world.resource_mut::<Assets<AnimationSet>>();
+        let animations = CommonAnimations::new(&mut animations);
+        Self { meshes, materials, animations }
     }
 }
 
@@ -31,7 +27,40 @@ pub struct CommonMeshes {
     pub sphere: Handle<Mesh>,
 }
 
+impl CommonMeshes {
+    fn new(meshes: &mut Assets<Mesh>) -> Self {
+        Self {
+            sphere: meshes.add(Sphere::new(1.0)),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct CommonMaterials {
     pub white: Handle<StandardMaterial>,
+}
+
+impl CommonMaterials {
+    fn new(materials: &mut Assets<StandardMaterial>) -> Self {
+        Self {
+            white: materials.add(StandardMaterial {
+                base_color: Color::WHITE,
+                unlit: true,
+                ..default()
+            }),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CommonAnimations {
+    pub player: Handle<AnimationSet>,
+}
+
+impl CommonAnimations {
+    fn new(animations: &mut Assets<AnimationSet>) -> Self {
+        Self {
+            player: animations.add(crate::player::create_player_animations()),
+        }
+    }
 }

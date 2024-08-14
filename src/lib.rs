@@ -4,6 +4,7 @@ mod act;
 mod area;
 mod camera;
 mod round;
+mod animation;
 mod daynight;
 mod player;
 mod mobs;
@@ -16,7 +17,7 @@ use bevy::render::camera::CameraProjectionPlugin;
 
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy::utils::HashMap;
-use bevy_mod_sprite3d::{Sprite3dPlugin, Sprite3dSystems};
+use bevy_mod_sprite3d::Sprite3dPlugin;
 
 use camera::DualProjection;
 pub use action::ActionKind;
@@ -57,6 +58,7 @@ impl Plugin for GamePlugin {
         app.init_asset::<map::Map>();
         app.init_asset::<map::Tileset>();
         app.init_asset::<map::Area>();
+        app.init_asset::<animation::AnimationSet>();
         app.init_asset_loader::<map::MapLoader>();
         app.init_asset_loader::<map::TilesetLoader>();
         app.init_asset_loader::<map::AreaLoader>();
@@ -98,26 +100,17 @@ impl Plugin for GamePlugin {
                     camera::toggle_projection,
                     camera::toggle_flycam,
                 ).run_if(in_state(DebugStates::Enabled)),
-                // player::draw_players
-                //     .after(player::update_players),
             ).in_set(GameSystems::Logic),
 
             /////////////// PostLogic ///////////////
             (
                 camera::follow_target,
                 round::round_positions.after(camera::follow_target),
+                animation::update_animations,
             ).in_set(GameSystems::PostLogic),
         ));
 
         app.add_systems(OnEnter(DebugStates::Disabled), camera::handle_disable_debug);
-
-        // Misc systems
-        app.add_systems(
-            PostUpdate,
-            round::round_positions
-                .after(TransformSystem::TransformPropagate)
-                .before(Sprite3dSystems),
-        );
     }
 }
 
