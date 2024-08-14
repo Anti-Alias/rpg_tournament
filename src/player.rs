@@ -1,4 +1,7 @@
+use bevy::color::palettes::css::WHITE;
 use bevy::prelude::*;
+use bevy::sprite::Anchor;
+use bevy_mod_sprite3d::*;
 use messages::SpawnPlayer;
 use crate::area::AreaStreamer;
 use crate::pixel::Round;
@@ -7,8 +10,12 @@ use crate::EntityIndex;
 const PLAYER_DRAW_SIZE: Vec3 = Vec3::new(16.0, 16.0, 16.0);
 
 #[derive(Component, Copy, Clone, PartialEq, Debug)]
-pub struct Player {
-    pub speed: f32,
+pub struct Player { pub speed: f32 }
+
+#[derive(Bundle, Default, Debug)]
+pub struct PlayerBundle {
+    pub player: Player,
+    pub sprite_3d_bundle: Sprite3dBundle<StandardMaterial>,
 }
 
 impl Default for Player {
@@ -22,22 +29,37 @@ impl Default for Player {
 pub fn spawn_player(
     trigger: Trigger<SpawnPlayer>,
     mut entity_index: ResMut<EntityIndex>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut commands: Commands,
+    assets: Res<AssetServer>,
 ) {
     let message = trigger.event();
+    let player_tex = assets.load::<Image>("player/base/light_walk.png");
+    let player_mat = materials.add(StandardMaterial {
+        base_color_texture: Some(player_tex),
+        reflectance: 0.0,
+        perceptual_roughness: 1.0,
+        cull_mode: None,
+        //alpha_mode: AlphaMode::Mask(0.5),
+        double_sided: true,
+        ..default()
+    });
+    
+    // Spawns player
+    let mut player_sprite = Sprite3dBundle::<StandardMaterial>::default();
+    player_sprite.sprite3d.rect = Some(Rect::new(0.0, 0.0, 64.0, 64.0));
+    player_sprite.sprite3d.anchor = Anchor::Custom(Vec2::new(0.0, -0.2));
+    player_sprite.transform  = Transform::from_translation(message.position);
+    player_sprite.material = player_mat;
     let player_id = commands.spawn((
         Name::new("player"),
         Player::default(),
-        AreaStreamer {
-            size: Vec2::splat(32.0 * 40.0),
-        },
-        SpatialBundle {
-            transform: Transform::from_translation(message.position),
-            ..default()
-        },
-        Round,
+        AreaStreamer { size: Vec2::splat(32.0 * 40.0) },
+        player_sprite,
     )).id();
     entity_index.player = Some(player_id);
+
+
 }
 
 pub fn update_players(

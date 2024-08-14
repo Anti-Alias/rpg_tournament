@@ -10,13 +10,15 @@ mod mobs;
 mod common;
 mod debug;
 
+use bevy::prelude::*;
 use bevy::pbr::PbrProjectionPlugin;
 use bevy::render::camera::CameraProjectionPlugin;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use camera::DualProjection;
-use bevy::prelude::*;
-use bevy::utils::HashMap;
 
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy::utils::HashMap;
+use bevy_mod_sprite3d::{Sprite3dPlugin, Sprite3dSystems};
+
+use camera::DualProjection;
 pub use action::ActionKind;
 use debug::DebugStates;
 
@@ -27,10 +29,11 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Msaa::Off);
         app.add_plugins((
-            DefaultPlugins.set(ImagePlugin::default_nearest()),
-            CameraProjectionPlugin::<DualProjection>::default(),
-            PbrProjectionPlugin::<DualProjection>::default(),
-            WorldInspectorPlugin::default().run_if(in_state(DebugStates::Enabled)),
+            DefaultPlugins.set(ImagePlugin::default_nearest()),                         // Built-in bevy plugins with configuratio0n.
+            Sprite3dPlugin::<StandardMaterial>::default(),                              // Adds 3D sprite batch rendering.
+            CameraProjectionPlugin::<DualProjection>::default(),                        // Custom camera projection (switch between ortho and perspective).
+            PbrProjectionPlugin::<DualProjection>::default(),                           // Custom camera projection (switch between ortho and perspective).
+            WorldInspectorPlugin::default().run_if(in_state(DebugStates::Enabled)),     // Debug menu for inspecting entities and resources.
         ));
 
         // States and resources
@@ -63,15 +66,15 @@ impl Plugin for GamePlugin {
 
         // System sets
         app.configure_sets(Update, (
-            GameSets::Flush.after(GameSets::PreLogic),
-            GameSets::Logic.after(GameSets::Flush),
-            GameSets::PostLogic.after(GameSets::Logic),
+            GameSystems::Flush.after(GameSystems::Prepare),
+            GameSystems::Logic.after(GameSystems::Flush),
+            GameSystems::PostLogic.after(GameSystems::Logic),
         ));
 
         // Systems
         app.add_systems(Update, (
 
-            /////////////// PreLogic ///////////////
+            /////////////// Prepare ///////////////
             (
                 action::run_action_queues,
                 map::process_loaded_maps,
@@ -80,10 +83,10 @@ impl Plugin for GamePlugin {
                 daynight::update_game_time,
                 area::reload_area
                     .run_if(in_state(DebugStates::Enabled)),
-            ).in_set(GameSets::PreLogic),
+            ).in_set(GameSystems::Prepare),
 
             /////////////// Flush ///////////////
-            apply_deferred.in_set(GameSets::Flush),
+            apply_deferred.in_set(GameSystems::Flush),
 
             /////////////// Logic ///////////////
             (
@@ -95,12 +98,12 @@ impl Plugin for GamePlugin {
                     camera::toggle_projection,
                     camera::toggle_flycam,
                 ).run_if(in_state(DebugStates::Enabled)),
-                player::draw_players
-                    .after(player::update_players),
-            ).in_set(GameSets::Logic),
+                // player::draw_players
+                //     .after(player::update_players),
+            ).in_set(GameSystems::Logic),
 
             /////////////// PostLogic ///////////////
-            camera::update_game_camera.in_set(GameSets::PostLogic),
+            camera::update_game_camera.in_set(GameSystems::PostLogic),
         ));
 
         app.add_systems(OnEnter(DebugStates::Disabled), camera::handle_disable_debug);
@@ -108,16 +111,28 @@ impl Plugin for GamePlugin {
         // Misc systems
         app.add_systems(
             PostUpdate,
-            pixel::round_positions.after(TransformSystem::TransformPropagate)
+            pixel::round_positions
+                .after(TransformSystem::TransformPropagate)
+                .before(Sprite3dSystems),
         );
     }
 }
 
 #[derive(SystemSet, Copy, Clone, Eq, PartialEq, Debug, Hash)]
-pub enum GameSets {
-    PreLogic,
+pub enum GameSystems {
+    /// Update indexes, area streaming, and other low-level tasks.
+    Prepare,
+    /// Flush commands from [`Prepare`](GameSystems::Prepare).
     Flush,
+    /// Decision logic.
+    /// Input   -> Action mapping.
+    /// AI      -> Action mapping.
+    PreLogic,
+    /// Main logic.
+    /// Executions actions enqueued on entities.
     Logic,
+    /// Reactions to main logic that should happen on the same frame.
+    /// IE: Reaction to hitboxes, animations etc.
     PostLogic,
 }
 
