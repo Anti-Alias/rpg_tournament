@@ -69,6 +69,7 @@ impl Plugin for GamePlugin {
         // System sets
         app.configure_sets(Update, (
             GameSystems::Flush.after(GameSystems::Prepare),
+            GameSystems::PreLogic.after(GameSystems::Flush),
             GameSystems::Logic.after(GameSystems::Flush),
             GameSystems::PostLogic.after(GameSystems::Logic),
         ));

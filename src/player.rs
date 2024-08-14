@@ -75,18 +75,10 @@ pub fn update_players(
 ) {
     for (player, mut transf) in &mut players {
         let mut direction = Vec3::ZERO;
-        if keyboard.pressed(KeyCode::ArrowLeft) {
-            direction.x -= 1.0;
-        }
-        if keyboard.pressed(KeyCode::ArrowRight) {
-            direction.x += 1.0;
-        }
-        if keyboard.pressed(KeyCode::ArrowUp) {
-            direction.z -= 1.0;
-        }
-        if keyboard.pressed(KeyCode::ArrowDown) {
-            direction.z += 1.0;
-        }
+        if keyboard.pressed(KeyCode::ArrowLeft) { direction.x -= 1.0; }
+        if keyboard.pressed(KeyCode::ArrowRight) { direction.x += 1.0; }
+        if keyboard.pressed(KeyCode::ArrowUp) { direction.z -= 1.0; }
+        if keyboard.pressed(KeyCode::ArrowDown) { direction.z += 1.0; }
         let direction = direction.normalize_or_zero();
         transf.translation += direction * player.speed * time.delta_seconds();
     }
