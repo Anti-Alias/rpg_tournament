@@ -1,12 +1,13 @@
 use std::time::Duration;
 
+use bevy::input::gamepad::{GamepadConnection, GamepadConnectionEvent, GamepadEvent};
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
-use bevy_mod_sprite3d::*;
 use messages::SpawnPlayer;
 use crate::animation::{Animation, AnimationBundle, AnimationSet, AnimationState};
 use crate::area::AreaStreamer;
 use crate::common::CommonAssets;
+use crate::input::{GamepadMapping, KeyboardMapping, VButtons};
 use crate::round::Round;
 use crate::EntityIndex;
 
@@ -18,12 +19,17 @@ pub struct Player { pub speed: f32 }
 #[derive(Bundle, Default, Debug)]
 pub struct PlayerBundle {
     pub player: Player,
-    pub sprite_3d_bundle: Sprite3dBundle<StandardMaterial>,
+    pub vbuttons: VButtons,
+    pub animation_bundle: AnimationBundle<StandardMaterial>,
+    pub area_streamer: AreaStreamer,
+    pub round: Round,
 }
 
 impl Default for Player {
     fn default() -> Self {
-        Self { speed: 256.0 }
+        Self {
+            speed: 3.0,
+        }
     }
 }
 
@@ -48,47 +54,79 @@ pub fn spawn_player(
     });
     
     // Spawns player
-    let player_id = commands.spawn((
-        Name::new("player"),
-        Player::default(),
-        AnimationBundle::<StandardMaterial> {
-            animation_set: common_assets.animations.player.clone(),
-            animation_state: AnimationState {
-                animation_idx: ANIM_WALK_OFFSET,
+    let player_id = commands
+        .spawn(PlayerBundle {
+            area_streamer: AreaStreamer { size: Vec2::splat(32.0 * 40.0) },
+            animation_bundle: AnimationBundle {
+                animation_set: common_assets.animations.player.clone(),
+                animation_state: AnimationState {
+                    animation_idx: ANIM_WALK_OFFSET,
+                    ..default()
+                },
+                material: player_mat,
+                transform: Transform::from_translation(message.position),
                 ..default()
             },
-            material: player_mat,
-            transform: Transform::from_translation(message.position),
             ..default()
-        },
-        Sprite::default(),
-        AreaStreamer { size: Vec2::splat(32.0 * 40.0) },
-        Round,
-    )).id();
+        })
+        .insert(KeyboardMapping::from([
+            (KeyCode::ArrowLeft,    buttons::LEFT),
+            (KeyCode::ArrowRight,   buttons::RIGHT),
+            (KeyCode::ArrowUp,      buttons::UP),
+            (KeyCode::ArrowDown,    buttons::DOWN),
+        ]))
+        .insert(Name::new("player"))
+        .id();
     entity_index.player = Some(player_id);
 }
 
-pub fn update_players(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut players: Query<(&Player, &mut Transform)>,
-    time: Res<Time>,
+
+pub fn handle_gamepads(
+    mut events: EventReader<GamepadEvent>,
+    mut players: Query<Entity, With<Player>>,
+    mut commands: Commands,
 ) {
-    for (player, mut transf) in &mut players {
+    for event in events.read() {
+        match event {
+            GamepadEvent::Connection(GamepadConnectionEvent { gamepad, connection: GamepadConnection::Connected(_) }) => {
+                let mapping = GamepadMapping::new(gamepad.clone(), [
+                    (GamepadButtonType::DPadLeft,   buttons::LEFT),
+                    (GamepadButtonType::DPadRight,  buttons::RIGHT),
+                    (GamepadButtonType::DPadUp,     buttons::UP),
+                    (GamepadButtonType::DPadDown,   buttons::DOWN),
+                ]);
+                for player_id in &mut players {
+                    commands.entity(player_id).insert(mapping.clone());
+                }
+            },
+            GamepadEvent::Connection(GamepadConnectionEvent { connection: GamepadConnection::Disconnected, .. }) => {
+                for player_id in &mut players {
+                    commands.entity(player_id).remove::<GamepadMapping>();
+                }
+            },
+            _ => {}
+        }
+    }
+}
+
+pub fn update_players(mut players: Query<(&Player, &mut Transform, &VButtons)>) {
+    for (player, mut transf, buttons) in &mut players {
         let mut direction = Vec3::ZERO;
-        if keyboard.pressed(KeyCode::ArrowLeft) { direction.x -= 1.0; }
-        if keyboard.pressed(KeyCode::ArrowRight) { direction.x += 1.0; }
-        if keyboard.pressed(KeyCode::ArrowUp) { direction.z -= 1.0; }
-        if keyboard.pressed(KeyCode::ArrowDown) { direction.z += 1.0; }
+        if buttons.pressed(buttons::LEFT) { direction.x -= 1.0; }
+        if buttons.pressed(buttons::RIGHT) { direction.x += 1.0; }
+        if buttons.pressed(buttons::UP) { direction.z -= 1.0; }
+        if buttons.pressed(buttons::DOWN) { direction.z += 1.0; }
         let direction = direction.normalize_or_zero();
-        transf.translation += direction * player.speed * time.delta_seconds();
+        transf.translation += direction * player.speed;
     }
 }
 
 pub(crate) fn create_player_animations() -> AnimationSet {
+
     const SIZE: Vec2 = Vec2::new(64.0, 64.0);
     const STRIDE: Vec2 = Vec2::new(64.0, 0.0);
     const DURATION: Duration = Duration::from_millis(100);
-    const ANCHOR: Anchor = Anchor::Custom(Vec2::new(0.0, -0.19));
+    const ANCHOR: Anchor = Anchor::Custom(Vec2::new(0.0, -0.21));
 
     let idle_s = Animation::EMPTY.with_frames(1, Vec2::new(0.0, 0.0)*SIZE, SIZE, STRIDE, DURATION, ANCHOR);
     let idle_n = Animation::EMPTY.with_frames(1, Vec2::new(0.0, 1.0)*SIZE, SIZE, STRIDE, DURATION, ANCHOR);
@@ -104,6 +142,14 @@ pub(crate) fn create_player_animations() -> AnimationSet {
         idle_s, idle_n, idle_e, idle_w,
         walk_s, walk_n, walk_e, walk_w,
     ])
+}
+
+/// Virtual player buttons
+pub mod buttons {
+    pub const LEFT: u32     = 1 << 0;
+    pub const RIGHT: u32    = 1 << 1;
+    pub const UP: u32       = 1 << 2;
+    pub const DOWN: u32     = 1 << 3;
 }
 
 pub mod messages {

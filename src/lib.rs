@@ -9,6 +9,7 @@ mod daynight;
 mod player;
 mod mobs;
 mod common;
+mod input;
 mod debug;
 
 use bevy::prelude::*;
@@ -17,7 +18,7 @@ use bevy::render::camera::CameraProjectionPlugin;
 
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy::utils::HashMap;
-use bevy_mod_sprite3d::Sprite3dPlugin;
+use bevy_mod_sprite3d::{Sprite3dPlugin, Sprite3dSystems};
 
 use camera::DualProjection;
 pub use action::ActionKind;
@@ -79,6 +80,9 @@ impl Plugin for GamePlugin {
 
             /////////////// Prepare ///////////////
             (
+                input::map_keyboard_to_vbuttons,
+                input::map_gamepads_to_vbuttons,
+                player::handle_gamepads,
                 action::run_action_queues,
                 map::process_loaded_maps,
                 area::stream_current_area,
@@ -106,10 +110,16 @@ impl Plugin for GamePlugin {
             /////////////// PostLogic ///////////////
             (
                 camera::follow_target,
-                round::round_positions.after(camera::follow_target),
                 animation::update_animations,
+                input::sync_vbuttons,
             ).in_set(GameSystems::PostLogic),
         ));
+
+        app.add_systems(PostUpdate, 
+            round::round_positions
+                .after(TransformSystem::TransformPropagate)
+                .before(Sprite3dSystems),
+        );
 
         app.add_systems(OnEnter(DebugStates::Disabled), camera::handle_disable_debug);
     }
