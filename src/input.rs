@@ -36,6 +36,30 @@ impl VButtons {
     }
 }
 
+/// Virtual sticks.
+#[derive(Component, Clone, Default, Debug)]
+pub struct VSticks(SmallVec<[Vec2; 2]>);
+impl VSticks {
+    
+    pub fn new(count: usize) -> Self {
+        let mut sticks = SmallVec::with_capacity(count);
+        for _ in 0..count {
+            sticks.push(Vec2::ZERO);
+        }
+        Self(sticks)
+    }
+
+    /// Gets a stick by index
+    pub fn get(&self, stick_idx: usize) -> Option<Vec2> {
+        self.0.get(stick_idx).copied()
+    }
+
+    /// Sets a stick at the specified index
+    pub fn set(&mut self, stick_idx: usize, stick: Vec2) {
+        self.0[stick_idx] = stick;
+    }
+}
+
 
 /// Maps key presses to virtual button presses on an entity.
 #[derive(Component, Clone, Default, Debug)]
@@ -59,17 +83,36 @@ where
 pub struct GamepadMapping {
     pub gamepad: Gamepad,
     button_mappings: SmallVec<[(GamepadButtonType, u32); 16]>,
+    stick_mappings: SmallVec<[(StickType, usize); 2]>,
 }
 
 impl GamepadMapping {
-    pub fn new(gamepad: Gamepad, button_mappings: impl IntoIterator<Item = (GamepadButtonType, u32)>) -> Self {
+    pub fn new(gamepad: Gamepad) -> Self {
         Self {
             gamepad,
-            button_mappings: button_mappings.into_iter().collect(),
+            button_mappings: SmallVec::default(),
+            stick_mappings: SmallVec::default(),
         }
+    }
+
+    pub fn with_button(mut self, button: GamepadButtonType, vbutton: u32) -> Self {
+        self.button_mappings.push((button, vbutton));
+        self
+    }
+
+    pub fn with_stick(mut self, stick_type: StickType, vstick: usize) -> Self {
+        self.stick_mappings.push((stick_type, vstick));
+        self
     }
 }
 
+/// Identifies a stick on a gamepad.
+#[derive(Copy, Clone, Eq, PartialEq,Debug)]
+#[allow(unused)]
+pub enum StickType {
+    Left,
+    Right
+}
 
 /// Maps keyboard for virtual buttons.
 pub fn map_keyboard_to_vbuttons(
@@ -96,6 +139,31 @@ pub fn map_gamepads_to_vbuttons(
             if input.pressed(button) {
                 vbuttons.press(vbutton);
             }
+        }
+    }
+}
+
+/// Maps gamepads to virtual stick.
+pub fn map_gamepads_to_vsticks(
+    axes: Res<Axis<GamepadAxis>>,
+    mut mappables: Query<(&GamepadMapping, &mut VSticks)>,
+) {
+    for (gamepad_mapping, mut vsticks) in &mut mappables {
+        for (stick_type, stick_idx) in gamepad_mapping.stick_mappings.iter().copied() {
+            let gamepad = gamepad_mapping.gamepad;
+            let (axis_x, axis_y) = match stick_type {
+                StickType::Left => (
+                    GamepadAxis { gamepad, axis_type: GamepadAxisType::LeftStickX },
+                    GamepadAxis { gamepad, axis_type: GamepadAxisType::LeftStickY },
+                ),
+                StickType::Right => (
+                    GamepadAxis { gamepad, axis_type: GamepadAxisType::RightStickX },
+                    GamepadAxis { gamepad, axis_type: GamepadAxisType::RightStickY },
+                ),
+            };
+            let Some(x) = axes.get(axis_x) else { continue };
+            let Some(y) = axes.get(axis_y) else { continue };
+            vsticks.set(stick_idx, Vec2::new(x, y));
         }
     }
 }

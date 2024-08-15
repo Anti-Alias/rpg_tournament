@@ -7,7 +7,7 @@ use messages::SpawnPlayer;
 use crate::animation::{Animation, AnimationBundle, AnimationSet, AnimationState};
 use crate::area::AreaStreamer;
 use crate::common::CommonAssets;
-use crate::input::{GamepadMapping, KeyboardMapping, VButtons};
+use crate::input::{GamepadMapping, KeyboardMapping, StickType, VButtons, VSticks};
 use crate::round::Round;
 use crate::EntityIndex;
 
@@ -20,6 +20,7 @@ pub struct Player { pub speed: f32 }
 pub struct PlayerBundle {
     pub player: Player,
     pub vbuttons: VButtons,
+    pub vsticks: VSticks,
     pub animation_bundle: AnimationBundle<StandardMaterial>,
     pub area_streamer: AreaStreamer,
     pub round: Round,
@@ -28,7 +29,7 @@ pub struct PlayerBundle {
 impl Default for Player {
     fn default() -> Self {
         Self {
-            speed: 3.0,
+            speed: 2.0,
         }
     }
 }
@@ -57,6 +58,7 @@ pub fn spawn_player(
     let player_id = commands
         .spawn(PlayerBundle {
             area_streamer: AreaStreamer { size: Vec2::splat(32.0 * 40.0) },
+            vsticks: VSticks::new(2),
             animation_bundle: AnimationBundle {
                 animation_set: common_assets.animations.player.clone(),
                 animation_state: AnimationState {
@@ -89,12 +91,12 @@ pub fn handle_gamepads(
     for event in events.read() {
         match event {
             GamepadEvent::Connection(GamepadConnectionEvent { gamepad, connection: GamepadConnection::Connected(_) }) => {
-                let mapping = GamepadMapping::new(gamepad.clone(), [
-                    (GamepadButtonType::DPadLeft,   buttons::LEFT),
-                    (GamepadButtonType::DPadRight,  buttons::RIGHT),
-                    (GamepadButtonType::DPadUp,     buttons::UP),
-                    (GamepadButtonType::DPadDown,   buttons::DOWN),
-                ]);
+                let mapping = GamepadMapping::new(gamepad.clone())
+                    .with_button(GamepadButtonType::DPadLeft, buttons::LEFT)
+                    .with_button(GamepadButtonType::DPadRight, buttons::RIGHT)
+                    .with_button(GamepadButtonType::DPadUp, buttons::UP)
+                    .with_button(GamepadButtonType::DPadDown, buttons::DOWN)
+                    .with_stick(StickType::Left, 0);
                 for player_id in &mut players {
                     commands.entity(player_id).insert(mapping.clone());
                 }
@@ -109,14 +111,19 @@ pub fn handle_gamepads(
     }
 }
 
-pub fn update_players(mut players: Query<(&Player, &mut Transform, &VButtons)>) {
-    for (player, mut transf, buttons) in &mut players {
+pub fn update_players(mut players: Query<(&Player, &mut Transform, &VButtons, &VSticks)>) {
+    for (player, mut transf, buttons, sticks) in &mut players {
+        let lstick = sticks.get(sticks::LEFT).unwrap();
+        let lstick = Vec3::new(lstick.x, 0.0, -lstick.y);
         let mut direction = Vec3::ZERO;
         if buttons.pressed(buttons::LEFT) { direction.x -= 1.0; }
         if buttons.pressed(buttons::RIGHT) { direction.x += 1.0; }
         if buttons.pressed(buttons::UP) { direction.z -= 1.0; }
         if buttons.pressed(buttons::DOWN) { direction.z += 1.0; }
-        let direction = direction.normalize_or_zero();
+        direction += lstick;
+        if direction.length_squared() > 1.0 {
+            direction = direction.normalize_or_zero();
+        }
         transf.translation += direction * player.speed;
     }
 }
@@ -150,6 +157,11 @@ pub mod buttons {
     pub const RIGHT: u32    = 1 << 1;
     pub const UP: u32       = 1 << 2;
     pub const DOWN: u32     = 1 << 3;
+}
+
+/// Stick index
+pub mod sticks {
+    pub const LEFT: usize = 0;
 }
 
 pub mod messages {

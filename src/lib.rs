@@ -23,6 +23,7 @@ use bevy_mod_sprite3d::{Sprite3dPlugin, Sprite3dSystems};
 use camera::DualProjection;
 pub use action::ActionKind;
 use debug::DebugStates;
+use round::RoundScale;
 
 
 /// Game engine plugin.
@@ -42,6 +43,7 @@ impl Plugin for GamePlugin {
         app.init_state::<ScreenStates>();
         app.init_state::<debug::DebugStates>();
         app.init_resource::<EntityIndex>();
+        app.init_resource::<RoundScale>();
 
         // Observers
         app.observe(action::run_action);
@@ -82,6 +84,7 @@ impl Plugin for GamePlugin {
             (
                 input::map_keyboard_to_vbuttons,
                 input::map_gamepads_to_vbuttons,
+                input::map_gamepads_to_vsticks,
                 player::handle_gamepads,
                 action::run_action_queues,
                 map::process_loaded_maps,
