@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::animation::AnimationSet;
+use crate::player;
 
 /// Resource that stores simple, common assets used across the application.
 /// These assets are generally lightweight.
@@ -12,8 +13,10 @@ pub struct CommonAssets {
 
 impl FromWorld for CommonAssets {
     fn from_world(world: &mut World) -> Self {
+        let assets = world.resource::<AssetServer>().clone();
         let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
-        let materials = CommonMaterials::new(&mut materials);
+
+        let materials = CommonMaterials::new(&assets, &mut materials);
         let mut meshes = world.resource_mut::<Assets<Mesh>>();
         let meshes = CommonMeshes::new(&mut meshes);
         let mut animations = world.resource_mut::<Assets<AnimationSet>>();
@@ -38,16 +41,14 @@ impl CommonMeshes {
 #[derive(Debug)]
 pub struct CommonMaterials {
     pub white: Handle<StandardMaterial>,
+    pub player: Handle<StandardMaterial>,
 }
 
 impl CommonMaterials {
-    fn new(materials: &mut Assets<StandardMaterial>) -> Self {
+    fn new(assets: &AssetServer, materials: &mut Assets<StandardMaterial>) -> Self {
         Self {
-            white: materials.add(StandardMaterial {
-                base_color: Color::WHITE,
-                unlit: true,
-                ..default()
-            }),
+            white: materials.add(StandardMaterial { base_color: Color::WHITE, unlit: true, ..default() }),
+            player: materials.add(player::create_material(assets, "player/base/light_walk.png"))
         }
     }
 }

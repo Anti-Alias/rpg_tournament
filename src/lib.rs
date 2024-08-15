@@ -100,6 +100,8 @@ impl Plugin for GamePlugin {
             /////////////// Logic ///////////////
             (
                 player::update_players,
+                player::update_character_controllers.after(player::update_players),
+                player::update_player_animations.after(player::update_players),
                 mobs::update_fireflies,
                 debug::toggle_debug,
                 camera::update_flycam,
@@ -114,6 +116,7 @@ impl Plugin for GamePlugin {
                 camera::follow_target,
                 animation::update_animations,
                 input::reset_virtual_inputs,
+                player::sync_players,
             ).in_set(GameSystems::PostLogic),
         ));
 
