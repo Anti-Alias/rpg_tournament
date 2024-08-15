@@ -115,16 +115,17 @@ impl Plugin for GamePlugin {
             (
                 camera::follow_target,
                 animation::update_animations,
-                input::reset_virtual_inputs,
                 player::sync_players,
             ).in_set(GameSystems::PostLogic),
         ));
 
-        app.add_systems(PostUpdate, 
+        app.add_systems(PostUpdate, (
             round::round_positions
                 .after(TransformSystem::TransformPropagate)
                 .before(Sprite3dSystems),
-        );
+            input::reset_virtual_inputs,
+
+        ));
 
         app.add_systems(OnEnter(DebugStates::Disabled), camera::handle_disable_debug);
     }

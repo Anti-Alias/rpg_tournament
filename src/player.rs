@@ -12,12 +12,13 @@ use crate::input::{GamepadMapping, KeyboardMapping, StickConfig, StickType, VBut
 use crate::round::Round;
 use crate::EntityIndex;
 
-const ANIM_WALK_OFFSET: usize = 4;
-
 #[derive(Component, Copy, Clone, PartialEq, Debug)]
 pub struct Player {
-    pub direction: CardinalDirection,
+    /// Direction player visibly faces
+    pub card_dir: CardinalDirection,
+    /// What the player is currently doing
     pub behavior: PlayerBehavior,
+    /// What the player was doing last frame
     pub behavior_prev: PlayerBehavior,
 }
 
@@ -31,12 +32,14 @@ pub struct CharacterController {
 }
 
 impl CharacterController {
-    pub fn speed(&self) -> f32 {
+
+    pub fn speed_friction(&self) -> (f32, f32) {
         let friction = match self.on_ground {
             true => self.ground_friction,
             false => self.air_friction,
         };
-        self.top_speed/friction - self.top_speed
+        let speed = self.top_speed/friction - self.top_speed;
+        (speed, friction)
     }
 }
 
@@ -110,7 +113,7 @@ impl Default for Player {
         Self {
             behavior: PlayerBehavior::default(),
             behavior_prev: PlayerBehavior::default(),
-            direction: CardinalDirection::default(),
+            card_dir: CardinalDirection::default(),
         }
     }
 }
@@ -126,7 +129,7 @@ pub fn spawn_player(
     bundle.area_streamer =  AreaStreamer { size: Vec2::splat(32.0 * 40.0) };
     bundle.vsticks = VSticks::new(2);
     bundle.animation_bundle.animation_set = common_assets.animations.player.clone();
-    bundle.animation_bundle.animation_state = AnimationState { animation_idx: ANIM_WALK_OFFSET, ..default() };
+    bundle.animation_bundle.animation_state = AnimationState { animation_idx: animations::WALK_BASE, ..default() };
     bundle.animation_bundle.material = common_assets.materials.player.clone();
 
     let player_id = commands
@@ -186,47 +189,90 @@ pub fn update_players(mut players: Query<(
 ) {
     for (mut player, mut cc, buttons, sticks) in &mut players {
 
-        // Controls running direction
-        let lstick = sticks.get(sticks::LEFT).unwrap();
-        let lstick = Vec3::new(lstick.x, 0.0, -lstick.y);
+        // Determines player's travel direction.
+        // Determines player's cardinal direction.
+        // Uses either dpad or stick.
         let mut direction = Vec3::ZERO;
-        if buttons.pressed(buttons::LEFT) { direction.x -= 1.0; }
-        if buttons.pressed(buttons::RIGHT) { direction.x += 1.0; }
-        if buttons.pressed(buttons::UP) { direction.z -= 1.0; }
-        if buttons.pressed(buttons::DOWN) { direction.z += 1.0; }
-        direction += lstick;
-        if direction.length_squared() > 1.0 {
-            direction = direction.normalize_or_zero();
+        let using_dpad = buttons.pressed(buttons::LEFT | buttons::RIGHT | buttons::UP | buttons::DOWN);
+        if using_dpad {
+            let (x, y) = xy_from_dpad(buttons.pressed);
+            let (prev_x, prev_y) = xy_from_dpad(buttons.pressed_prev);
+            direction = Vec3::new(x as f32, 0.0, -y as f32);
+            if let Some(card_dir) = card_dir_from_xy(x, y, prev_x, prev_y) {
+                player.card_dir = card_dir;
+            }
+        }
+        else {
+            let stick = sticks.get(sticks::LEFT).unwrap();
+            let stick = Vec3::new(stick.x, 0.0, -stick.y);
+            direction += stick;
+            if let Some(card_dir) = CardinalDirection::from_vec2(Vec2::new(direction.x, -direction.z)) {
+                player.card_dir = card_dir;
+            }
         }
 
         // Applies direction to velocity
-        let cc = &mut *cc;
-        cc.velocity += direction * cc.speed();
-        cc.velocity *= cc.ground_friction;
-
-        // Sets direction baed on velocity
-        if let Some(direction) = CardinalDirection::from_vec2(Vec2::new(direction.x, -direction.z)) {
-            player.direction = direction;
+        let direction = direction.clamp_length_max(1.0);
+        let (cc_speed, cc_friction) = cc.speed_friction();
+        cc.velocity += direction * cc_speed;
+        cc.velocity *= cc_friction;
+        let mut is_moving = true;
+        if cc.velocity.length_squared() < 0.01 {
+            cc.velocity = Vec3::ZERO;
+            is_moving = false;
         }
 
         // Updates behavior
-        let requests_movement = direction.length_squared() > 0.0;
         player.behavior = match player.behavior {
             PlayerBehavior::Idle => {
-                match requests_movement {
+                match is_moving {
                     false => PlayerBehavior::Idle,
                     true => PlayerBehavior::Walking,
                 }
             },
             PlayerBehavior::Walking => {
-                let is_moving = cc.velocity.length_squared() > 0.1;
-                match is_moving || requests_movement {
+                match is_moving {
                     false => PlayerBehavior::Idle,
                     true => PlayerBehavior::Walking,
                 }
             },
         };
     }
+}
+
+fn xy_from_dpad(button_bits: u32) -> (i32, i32) {
+    let (mut x, mut y) = (0, 0);
+    if button_bits & buttons::LEFT != 0   { x -= 1; }
+    if button_bits & buttons::RIGHT != 0  { x += 1; }
+    if button_bits & buttons::UP != 0     { y += 1; }
+    if button_bits & buttons::DOWN != 0   { y -= 1; }
+    (x, y)
+}
+
+fn card_dir_from_xy(x: i32, y: i32, prev_x: i32, prev_y: i32) -> Option<CardinalDirection> {
+    if x == 0 && y == 0 { return None }
+    match (x, y) {
+        (0, 1)  => return Some(CardinalDirection::North),
+        (0, -1) => return Some(CardinalDirection::South),
+        (-1, 0) => return Some(CardinalDirection::West),
+        (1, 0)  => return Some(CardinalDirection::East),
+        _ => {}
+    }
+    match (x, prev_y, y) {
+        (1, 0, 1)   => return Some(CardinalDirection::North),   // RIGHT, recent UP
+        (1, 0, -1)  => return Some(CardinalDirection::South),   // RIGHT, recent DOWN
+        (-1, 0, 1)  => return Some(CardinalDirection::North),   // LEFT, recent UP
+        (-1, 0, -1) => return Some(CardinalDirection::South),   // LEFT, recent DOWN
+        _ => {}
+    }
+    match (y, prev_x, x) {
+        (1, 0, -1)  => return Some(CardinalDirection::West),   // UP, recent LEFT
+        (1, 0, 1)   => return Some(CardinalDirection::East),   // UP, recent RIGHT
+        (-1, 0, -1) => return Some(CardinalDirection::West),   // DOWN, recent LEFT
+        (-1, 0, 1)  => return Some(CardinalDirection::East),   // DOWN, recent RIGHT
+        _ => {}
+    }
+    None
 }
 
 pub fn update_character_controllers(mut controllers: Query<(&CharacterController, &mut Transform)>) {
@@ -239,7 +285,7 @@ pub fn update_player_animations(mut players: Query<(&Player, &mut AnimationState
     for (player, mut player_anims) in &mut players {
         
         // Handle behavior / direction change
-        match (player.behavior_prev, player.behavior, player.direction) {
+        match (player.behavior_prev, player.behavior, player.card_dir) {
             (PlayerBehavior::Idle, PlayerBehavior::Walking, direction) => {
                 player_anims.animation_idx = animations::WALK_BASE + direction as usize;
                 player_anims.frame_idx = 0;
@@ -302,6 +348,7 @@ pub(crate) fn create_player_animations() -> AnimationSet {
     ])
 }
 
+/// Base indices of player animations.
 pub mod animations {
     pub const IDLE_BASE: usize = 0;
     pub const WALK_BASE: usize = 4;

@@ -5,8 +5,10 @@ use smallvec::SmallVec;
 /// Abstraction on virtual buttons on a controller, or the keys on a keyboard.
 #[derive(Component, Copy, Clone, Eq, PartialEq, Default, Debug)]
 pub struct VButtons {
-    pressed: u32,
-    pressed_prev: u32,
+    /// Bits of buttons being pressed this frame.
+    pub pressed: u32,
+    /// Bits of buttons being pressed the previous frame.
+    pub pressed_prev: u32,
 }
 
 impl VButtons {
@@ -21,18 +23,18 @@ impl VButtons {
         self.pressed & button_bits != 0
     }
 
-    /// True if at least one of the buttons specified was just pressed this frame.
+    /// True if at least one of the buttons is pressed this frame, but none in the previous frame.
     pub fn just_pressed(&self, button_bits: u32) -> bool {
-        let pressed = self.pressed & button_bits != 0;
-        let prev_pressed = self.pressed_prev & button_bits != 0;
-        pressed && !prev_pressed
+        let any_pressed = self.pressed & button_bits != 0;
+        let any_pressed_prev = self.pressed_prev & button_bits != 0;
+        any_pressed && !any_pressed_prev
     }
 
-    /// True if at least one of the buttons specified was just released this frame.
+    /// True if none of the buttons are pressed this frame, but at least one was the previous frame.
     pub fn just_released(&self, button_bits: u32) -> bool {
-        let pressed = self.pressed & button_bits != 0;
-        let prev_pressed = self.pressed_prev & button_bits != 0;
-        !pressed && prev_pressed
+        let any_pressed = self.pressed & button_bits != 0;
+        let any_pressed_prev = self.pressed_prev & button_bits != 0;
+        !any_pressed && any_pressed_prev
     }
 }
 
