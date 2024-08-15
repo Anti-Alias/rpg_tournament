@@ -82,10 +82,9 @@ impl Plugin for GamePlugin {
 
             /////////////// Prepare ///////////////
             (
-                input::map_keyboard_to_vbuttons,
-                input::map_gamepads_to_vbuttons,
-                input::map_gamepads_to_vsticks,
-                player::handle_gamepads,
+                input::map_keyboard,
+                input::map_gamepads,
+                player::assign_gamepad_to_player,
                 action::run_action_queues,
                 map::process_loaded_maps,
                 area::stream_current_area,
@@ -114,7 +113,7 @@ impl Plugin for GamePlugin {
             (
                 camera::follow_target,
                 animation::update_animations,
-                input::sync_vbuttons,
+                input::reset_virtual_inputs,
             ).in_set(GameSystems::PostLogic),
         ));
 

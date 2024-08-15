@@ -7,7 +7,7 @@ use messages::SpawnPlayer;
 use crate::animation::{Animation, AnimationBundle, AnimationSet, AnimationState};
 use crate::area::AreaStreamer;
 use crate::common::CommonAssets;
-use crate::input::{GamepadMapping, KeyboardMapping, StickType, VButtons, VSticks};
+use crate::input::{GamepadMapping, KeyboardMapping, StickConfig, StickType, VButtons, VSticks};
 use crate::round::Round;
 use crate::EntityIndex;
 
@@ -83,28 +83,33 @@ pub fn spawn_player(
 }
 
 
-pub fn handle_gamepads(
+/// When the first gamepad connects, assign it to a [`Player`] entity.
+/// When the first gamepad disconnects, unassign it from the [`Player`] entity.
+pub fn assign_gamepad_to_player(
     mut events: EventReader<GamepadEvent>,
     mut players: Query<Entity, With<Player>>,
+    gamepads: Res<Gamepads>,
     mut commands: Commands,
 ) {
     for event in events.read() {
         match event {
             GamepadEvent::Connection(GamepadConnectionEvent { gamepad, connection: GamepadConnection::Connected(_) }) => {
+                if gamepads.iter().count() != 1 { break }
                 let mapping = GamepadMapping::new(gamepad.clone())
                     .with_button(GamepadButtonType::DPadLeft, buttons::LEFT)
                     .with_button(GamepadButtonType::DPadRight, buttons::RIGHT)
                     .with_button(GamepadButtonType::DPadUp, buttons::UP)
                     .with_button(GamepadButtonType::DPadDown, buttons::DOWN)
-                    .with_stick(StickType::Left, 0);
+                    .with_stick(StickType::Left, StickConfig { vstick_idx: sticks::LEFT, deadzones: Vec2::new(0.15, 0.15) });
                 for player_id in &mut players {
                     commands.entity(player_id).insert(mapping.clone());
                 }
             },
             GamepadEvent::Connection(GamepadConnectionEvent { connection: GamepadConnection::Disconnected, .. }) => {
+                if gamepads.iter().count() != 0 { break }
                 for player_id in &mut players {
                     commands.entity(player_id).remove::<GamepadMapping>();
-                }
+                }   
             },
             _ => {}
         }

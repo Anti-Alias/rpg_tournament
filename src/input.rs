@@ -38,7 +38,9 @@ impl VButtons {
 
 /// Virtual sticks.
 #[derive(Component, Clone, Default, Debug)]
-pub struct VSticks(SmallVec<[Vec2; 2]>);
+pub struct VSticks {
+    sticks: SmallVec<[Vec2; 2]>
+}
 impl VSticks {
     
     pub fn new(count: usize) -> Self {
@@ -46,17 +48,23 @@ impl VSticks {
         for _ in 0..count {
             sticks.push(Vec2::ZERO);
         }
-        Self(sticks)
+        Self { sticks }
     }
 
     /// Gets a stick by index
     pub fn get(&self, stick_idx: usize) -> Option<Vec2> {
-        self.0.get(stick_idx).copied()
+        self.sticks.get(stick_idx).copied()
     }
 
     /// Sets a stick at the specified index
     pub fn set(&mut self, stick_idx: usize, stick: Vec2) {
-        self.0[stick_idx] = stick;
+        self.sticks[stick_idx] = stick;
+    }
+
+    fn reset(&mut self) {
+        for stick in &mut self.sticks {
+            *stick = Vec2::ZERO;
+        }
     }
 }
 
@@ -83,7 +91,7 @@ where
 pub struct GamepadMapping {
     pub gamepad: Gamepad,
     button_mappings: SmallVec<[(GamepadButtonType, u32); 16]>,
-    stick_mappings: SmallVec<[(StickType, usize); 2]>,
+    stick_mappings: SmallVec<[(StickType, StickConfig); 2]>,
 }
 
 impl GamepadMapping {
@@ -100,22 +108,25 @@ impl GamepadMapping {
         self
     }
 
-    pub fn with_stick(mut self, stick_type: StickType, vstick: usize) -> Self {
-        self.stick_mappings.push((stick_type, vstick));
+    pub fn with_stick(mut self, stick_type: StickType, stick_cfg: StickConfig) -> Self {
+        self.stick_mappings.push((stick_type, stick_cfg));
         self
     }
+}
+
+#[derive(Copy, Clone, PartialEq, Default, Debug)]
+pub struct StickConfig {
+    pub vstick_idx: usize,
+    pub deadzones: Vec2,
 }
 
 /// Identifies a stick on a gamepad.
 #[derive(Copy, Clone, Eq, PartialEq,Debug)]
 #[allow(unused)]
-pub enum StickType {
-    Left,
-    Right
-}
+pub enum StickType { Left, Right }
 
 /// Maps keyboard for virtual buttons.
-pub fn map_keyboard_to_vbuttons(
+pub fn map_keyboard(
     input: Res<ButtonInput<KeyCode>>,
     mut mappables: Query<(&KeyboardMapping, &mut VButtons)>,
 ) {
@@ -129,11 +140,14 @@ pub fn map_keyboard_to_vbuttons(
 }
 
 /// Maps gamepads to virtual buttons.
-pub fn map_gamepads_to_vbuttons(
+pub fn map_gamepads(
     input: Res<ButtonInput<GamepadButton>>,
-    mut mappables: Query<(&GamepadMapping, &mut VButtons)>,
+    axes: Res<Axis<GamepadAxis>>,
+    mut vbutton_q: Query<(&GamepadMapping, &mut VButtons)>,
+    mut vsticks_q: Query<(&GamepadMapping, &mut VSticks)>,
 ) {
-    for (gamepad_mapping, mut vbuttons) in &mut mappables {
+    // Maps buttons
+    for (gamepad_mapping, mut vbuttons) in &mut vbutton_q {
         for (button_type, vbutton) in gamepad_mapping.button_mappings.iter().copied() {
             let button = GamepadButton::new(gamepad_mapping.gamepad, button_type);
             if input.pressed(button) {
@@ -141,15 +155,9 @@ pub fn map_gamepads_to_vbuttons(
             }
         }
     }
-}
-
-/// Maps gamepads to virtual stick.
-pub fn map_gamepads_to_vsticks(
-    axes: Res<Axis<GamepadAxis>>,
-    mut mappables: Query<(&GamepadMapping, &mut VSticks)>,
-) {
-    for (gamepad_mapping, mut vsticks) in &mut mappables {
-        for (stick_type, stick_idx) in gamepad_mapping.stick_mappings.iter().copied() {
+    // Maps sticks
+    for (gamepad_mapping, mut vsticks) in &mut vsticks_q {
+        for (stick_type, stick_cfg) in gamepad_mapping.stick_mappings.iter().copied() {
             let gamepad = gamepad_mapping.gamepad;
             let (axis_x, axis_y) = match stick_type {
                 StickType::Left => (
@@ -161,18 +169,27 @@ pub fn map_gamepads_to_vsticks(
                     GamepadAxis { gamepad, axis_type: GamepadAxisType::RightStickY },
                 ),
             };
-            let Some(x) = axes.get(axis_x) else { continue };
-            let Some(y) = axes.get(axis_y) else { continue };
-            vsticks.set(stick_idx, Vec2::new(x, y));
+            let Some(mut x) = axes.get(axis_x) else { continue };
+            let Some(mut y) = axes.get(axis_y) else { continue };
+            if x.abs() < stick_cfg.deadzones.x { x = 0.0 }
+            if y.abs() < stick_cfg.deadzones.y { y = 0.0 }
+            let Some(vstick) = vsticks.get(stick_cfg.vstick_idx) else { continue };
+            let vstick = vstick + Vec2::new(x, y);
+            vsticks.set(stick_cfg.vstick_idx, vstick);
         }
     }
 }
 
-
 /// Syncs previous vbutton state with current.
-pub fn sync_vbuttons(mut vbuttons_q: Query<&mut VButtons>) {
+pub fn reset_virtual_inputs(
+    mut vbuttons_q: Query<&mut VButtons>,
+    mut vsticks_q: Query<&mut VSticks>,
+) {
     for mut vbuttons in &mut vbuttons_q {
         vbuttons.pressed_prev = vbuttons.pressed;
         vbuttons.pressed = 0;
+    }
+    for mut vsticks in &mut vsticks_q {
+        vsticks.reset();
     }
 }
