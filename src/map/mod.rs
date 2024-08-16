@@ -314,7 +314,10 @@ fn process_object_layer(
         for (prop_name, prop_value) in props.iter() {
             match (prop_name, prop_value) {
                 ("type", PropertyValue::String(typ)) => {
-                    let entity_type = EntityType::parse(typ);
+                    let Some(entity_type) = EntityType::parse(typ) else {
+                        bevy::log::warn!("Unexpected entity type '{typ}'");
+                        continue
+                    };
                     spawn_object(
                         commands,
                         object,
@@ -339,15 +342,38 @@ fn spawn_object(
     map_height_px: f32,
     map_position: Vec3,
 ) {
-    let mut position = map_position + Vec3::new(object.x(), 0.0, object.y() - map_height_px);
+    let mut lift = 0.0;
+    let mut depth = 1.0;
     for (prop_name, prop_value) in object.properties() {
         match (prop_name, prop_value) {
-            ("lift", PropertyValue::Float(lift))    => { position += Vec3::new(0.0, *lift * tile_height, *lift * tile_height) }
-            ("lift", PropertyValue::Int(lift))      => { position += Vec3::new(0.0, *lift as f32 * tile_height, *lift as f32 * tile_height) }
+            ("lift", value) => lift = parse_float("lift", value, 0.0),
+            ("depth", value) => depth = parse_float("depth", value, 1.0),
             _ => {}
         }
     }
-    commands.trigger(SpawnEntity { entity_type, position });
+    let size = Vec3::new(object.width(), depth, object.height());
+    let position = Vec3::new(object.x(), lift*tile_height, object.y() + lift*tile_height - map_height_px);
+    let position = position + map_position; // Relative to map position
+    let position = position + size / 2.0;   // Offset by half/size so that position is center of object
+    commands.trigger(SpawnEntity { entity_type, position, size });
+}
+
+fn parse_float(name: &str, value: &PropertyValue, default: f32) -> f32 {
+    match value {
+        PropertyValue::String(value) => match value.parse::<f32>() {
+            Ok(value) => value,
+            Err(_) => {
+                log::warn!("Failed to parse '{name}' as a float");
+                default
+            },
+        },
+        PropertyValue::Int(value) => *value as f32,
+        PropertyValue::Float(value) => *value,
+        _ => {
+            log::warn!("Failed to parse '{name}' as a float");
+            default
+        },
+    }
 }
 
 #[derive(Component, Clone, Eq, PartialEq, Debug)]

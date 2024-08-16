@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="74" height="35" tilewidth="16" tileheight="16" infinite="0" nextlayerid="66" nextobjectid="56">
+ <properties>
+  <property name="int_prop" type="int" value="3"/>
+ </properties>
+ <tileset firstgid="1" source="tilesets/spring_forest.tsx"/>
+ <tileset firstgid="673" source="tilesets/shape.tsx"/>
+ <tileset firstgid="1697" source="tilesets/spring_trees.tsx"/>
+ <group id="58" name="underground">
+  <properties>
+   <property name="lift" type="int" value="-1"/>
+  </properties>
+  <layer id="59" name="base" width="74" height="35">
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACu3QwQmAMBBE0U0pnuxHQfsQwUa0XwMaXEJy8LRz+A+G5BTCNwMAAAAAAC3DuyVvD97s/qOmNFrzzmR2pef099bZu/95oz4n+1qpKY2O/M/RYre5VmpUGtWt1Cg18q3URDfpTU10DzrRiU46UxPdg050opPOAAAAoOcGYo0mFHgoAAA=
+  </data>
+  </layer>
+  <layer id="60" name=":mesh:" width="74" height="35" visible="0">
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACu3SsQmAQBBE0QNL0atE7b8lvUA4ROOd4D2YfPlsawAAAMCXbclcmueufu8o3hreaTQ6A35on1qlSWn0bpUmqdHcKk11k7+lqe6hk0465SxNdQ+ddNIpZwAA5LkAePSGbXgoAAA=
+  </data>
+  </layer>
+ </group>
+ <group id="40" name="ground">
+  <layer id="41" name="base" width="74" height="35">
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACu2YW47VRhRFSzwmAHl8m4YJJFL4LuCOIBL/BvVAnIiBVBJG4olhK7XE8r5uCdFq4Q9faavK9Tinzq59jt09lFKGEydOnDhx4sSJEydOnDgwpgV1Qev9tR3Vn/u61tfVPsa+sc8NvT/eYX/esTHLx6S9e/ZqXzPJjs9Yww5nY88sW2PM7fHSZJt92BnK9bl4zjjHsj0re2y7anwIO3P4yvWOd5Zf89pkc4x1XgMvxF61j7gTnIE2ObTfKZ6P+oNnc546hne44Q5a2cYKbMPj5pb+FDjqzzlM3OQJ8beAuWCtdTyXu/UG787NpvVH/Vk7aMq5R975ztFJcpYcmPf0YY6x8f6BY73P78+yfQc4ZucYreuJ1+/l2FS277JWvt7DoHmeXz9wrPf5/Va2tYK7tZ7gawWaoT65xsyxH158B1mrfB9/PHCs9/n9Xq6/A1yX4Mb54lrkXGOMHLPNrEXWKH6OrifzQax571mn8vvCuphj3vUcPzXG1uej68mcZDz0rRk0lXpyvtkW3FtrU+xdx4+uJ/IIrqwn8s25Bh8enzXm765Wrvm13Vk2jq4n7plawbldq7ImsYdn56c5QFd3cQlva/+XBb8+bLjf9Xu24Hn5qg/HM5XrPCIPWTfFXJUd1ua3pt+JNWysY0fjCo7y3okx9UNsxFrLto7l3+WDnjPXkmP8MH4UruDI34LUEMdvfZCTmWOuZcyP6ldhkI9W9t+rrFm5+mnBzz+wfa44iC/rTuab82SM8cyhzE/XoKxh9mWNObfhMXXIOeg/WvBY+K/j8Te0T8r2XeMYRvkd5W+Sf5/JMeTfNOY5+W07PuBtCF81fJhjzjUJc+dnjffvBbcLbha8WnBZ8Km3t2rXuacdzP/VuSKeutO3f/jjnJxv0j7fJfpq6ufz3v8NrCVrxLzbns/id8Gjzg9x33TcqmX8aefI8680Dld7usG3zwdH1pxzhXVwbK3W8GNtMA9XcGOuW9nq1N8StWy5hCM4MDcfFnzueBvtx84LHH7q/VtxNYgfx2b9Mw7YU7XWHDtHrFH25l0wbu1O2mNtwdukdeQaOrp0fi7i553upoXvN+ILjm4E68r3M8cY95s6sQbwC0fOlVauc8d8WW/wZV2O5VpvPuv6/KL8rwnyKPmZBOuzaWzl623n6yK+V95elm2+jLLjszlW+smJvym57zGeac1HK9c1C52k5txnn/Pt0rkirtSibeQ7Ex7edK6ocZduz3EMZasjt9Z83ncVzHNqZ7gDLWw4573GtZS5F7p3cu2dYuEeh7LVYIvW765/xdOKf8o2Z5NnbLcduz6Dzz2Ez+TnC9ndngN4KAAA
+  </data>
+  </layer>
+  <layer id="42" name=":mesh:" width="74" height="35" visible="0">
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACu3QsQ2AQBADwdfRCv03BfRBRIREQGIHs9IUYK8lSZIkSd3tG2S0lv7FT37yU15r6V/85Cc/5bWW/sVP/1yTfuTdMflf2r9q/ajpq/aPHudkpfcDAPDtBrJoH/d4KAAA
+  </data>
+  </layer>
+ </group>
+ <group id="63" name="foliage">
+  <layer id="64" name="base" width="74" height="35">
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACu3PzU2CQRhF4flKEbQQEFZAEQKulCL4caUWAcIKaAJZUgW4pAhOB8xMTJiQ8yRnN8l7JwRJknTNQxVCjer0SE/Vfdz6bw22NumZWtSO2N7hTZd6if/MuVWKF7b2aUBDeo3Y/sabdxol/jPnVinGbJ3QlGb0EbH9kzdf9J34z5xbpZizdUE/tKRVxPY1bza0Tfxnzq2S7Nj7S/uE3YfMP+bcKsWRzSf6S9h+zvxnzi1JkiRJkiRJkiTd3gW2ZwpueCgAAA==
+  </data>
+  </layer>
+  <layer id="65" name=":mesh:" width="74" height="35">
+   <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAACu3QsQkAIAwEQMHVbNx/IQdIYQgKInfw9SffGgCwM3vMD12njR6zU/2z0vWKyu3VP+10r+sVdsqxU46dAAAAAAAAyFhmh3oYeCgAAA==
+  </data>
+  </layer>
+ </group>
+ <objectgroup color="#00aaff" id="62" name="water">
+  <object id="55" x="151.333" y="206.333" width="648.667" height="224.667">
+   <properties>
+    <property name="lift" type="float" value="-0.5"/>
+    <property name="type" value="water"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <objectgroup color="#ffff00" id="61" name="entities">
+  <object id="46" x="144" y="274.667">
+   <properties>
+    <property name="lift" type="int" value="1"/>
+    <property name="type" value="firefly"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="47" x="369.333" y="274">
+   <properties>
+    <property name="lift" type="int" value="1"/>
+    <property name="type" value="firefly"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="48" x="554" y="398.667">
+   <properties>
+    <property name="lift" type="int" value="1"/>
+    <property name="type" value="firefly"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="49" x="756.667" y="328">
+   <properties>
+    <property name="lift" type="int" value="1"/>
+    <property name="type" value="firefly"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="50" x="636.667" y="354">
+   <properties>
+    <property name="lift" type="int" value="2"/>
+    <property name="type" value="firefly"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+</map>

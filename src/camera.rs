@@ -49,12 +49,12 @@ impl Default for GameCameraBundle {
             exposure: Default::default(),
             main_texture_usages: Default::default(),
             deband_dither: DebandDither::Enabled,
-            round: Round,
+            round: Round::default(),
         };
         camera.color_grading.global.post_saturation = 1.1;
         camera.projection.perspective = PerspectiveProjection { near: 16.0, ..default() };
         camera.projection.orthographic.far = 10000.0;
-        camera.projection.orthographic.scale = 0.5;
+        camera.projection.orthographic.scale = 1.0/2.0;
         camera.transform = Transform::from_xyz(128.0, 256.0, 256.0).looking_to(Vec3::new(0.0, -1.0, -1.0), Vec3::Y);
         camera.tonemapping = Tonemapping::None;
         camera
@@ -72,7 +72,7 @@ impl Default for GameCamera {
     fn default() -> Self {
         Self {
             target: Some(CameraTarget::Player),
-            offset: Vec3::new(0.0, 256.0, 256.0),
+            offset: Vec3::new(0.0, 400.0, 400.0),
         }
     }
 }

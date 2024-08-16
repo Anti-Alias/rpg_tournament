@@ -78,8 +78,10 @@ fn sun_rotation_y(time_frac: f32, start_rot: f32, end_rot: f32) -> f32 {
 
 
 /// Used to track the time of day as a fraction.
-#[derive(Resource, Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Resource, Reflect, Copy, Clone, PartialEq, Debug)]
+#[reflect(Resource)]
 pub struct GameTime {
+    t_offset: f32,              // Out of 100 for easier debugging.
     elapsed: Duration,
     prev_elapsed: Duration,
     day_duration: Duration,
@@ -105,7 +107,8 @@ impl GameTime {
         let elapsed = elapsed.as_millis();
         let day_duration = self.day_duration.as_millis();
         let day_elapsed = elapsed % day_duration;
-        day_elapsed as f32 / day_duration as f32
+        let t = day_elapsed as f32 / day_duration as f32;
+        (t + self.t_offset / 100.0).rem_euclid(1.0)
     }
 }
 
@@ -117,6 +120,7 @@ impl Default for GameTime {
             elapsed,
             prev_elapsed: elapsed,
             day_duration,
+            t_offset: 0.0,
         }
     }
 }

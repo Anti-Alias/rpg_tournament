@@ -97,6 +97,11 @@ impl Animation {
     }
 }
 
+/// Causes entity's animation set to sync with another's.
+/// Useful for equipment systems.
+#[derive(Component, Copy, Clone, Eq, PartialEq, Debug)]
+pub struct AnimationSync(pub Entity);
+
 #[derive(Clone, Default, Debug)]
 pub struct Frame {
     pub sprite: Sprite3d,
@@ -133,24 +138,37 @@ pub enum AnimationMode {
     Loop,
 }
 
+/// Updates sprite entities that have an animation that has changed recently.
 pub fn update_animations(
     mut animation_q: Query<(&mut Sprite3d, &mut AnimationState, &Handle<AnimationSet>)>,
     animations: Res<Assets<AnimationSet>>,
     time: Res<Time>,
 ) {
+    // For all animations...
     for (mut sprite, mut anim_state, anim_set) in &mut animation_q {
-        if anim_state.stopped && !anim_state.is_changed() { continue };
-        anim_state.frame_elapsed += time.delta();
+        let anim_state_changed = anim_state.is_added() || anim_state.is_changed();
+        if anim_state.stopped && !anim_state_changed { continue };
+
+        // Consumes time and gets animation set
         let anim_set = animations.get(anim_set).unwrap();
+        anim_state.frame_elapsed += time.delta();
+
+        // Gets animation by index
         let Some(anim) = anim_set.animations.get(anim_state.animation_idx) else {
             bevy::log::warn!("Animation index out of bounds");
+            anim_state.frame_elapsed = Duration::ZERO;
             continue
         };
         loop {
+
+            // Gets frame by index
             let Some(frame) = anim.frames.get(anim_state.frame_idx) else {
                 bevy::log::warn!("Frame index out of bounds");
+                anim_state.frame_elapsed = Duration::ZERO;
                 break;
             };
+
+            // Updates frame index if the frame completed
             if anim_state.frame_elapsed > frame.duration {
                 anim_state.frame_idx = match anim_state.mode {
                     AnimationMode::Play => (anim_state.frame_idx + 1).max(anim.frames.len() - 1),
@@ -159,12 +177,26 @@ pub fn update_animations(
                 anim_state.frame_elapsed -= frame.duration;
                 *sprite = frame.sprite.clone();
             }
+
+            // If not, animation is complete. Move on to the next one.
             else {
-                if anim_state.is_changed() {
-                    *sprite = frame.sprite.clone();
-                }
+                if anim_state_changed { *sprite = frame.sprite.clone() }
                 break;
             }
         }
+    }
+}
+
+/// Synchronizes sprites
+pub fn sync_animations(
+    mut sync_q: Query<(&mut Sprite3d, &AnimationSync)>,
+    animation_q: Query<&Sprite3d, Without<AnimationSync>>,
+) {
+    for (mut sync_sprite, AnimationSync(anim_id)) in &mut sync_q {
+        let Ok(anim_sprite) = animation_q.get(*anim_id) else {
+            bevy::log::warn!("Failed to look up sprite to sync with");
+            continue;
+        };
+        *sync_sprite = anim_sprite.clone();
     }
 }

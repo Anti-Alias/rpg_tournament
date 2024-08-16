@@ -1,29 +1,34 @@
-use bevy::math::Affine3A;
 use bevy::prelude::*;
 
 
+/// Entities with this component will have their translations rounded to the nearest unit.
+/// After transform propagation, the original translation will be restored.
 #[derive(Component, Copy, Clone, Default, Debug)]
-pub struct Round;
+pub struct Round(Vec3);
 
 #[derive(Resource, PartialEq, Debug)]
-pub struct RoundScale(pub f32);
+pub struct RoundUnitSize(pub f32);
 
-impl Default for RoundScale {
+impl Default for RoundUnitSize {
     fn default() -> Self {
-        Self(0.5)
+        Self(1.0)
     }
 }
 
-pub fn round_positions(
-    round_scale: Res<RoundScale>,
-    mut entities: Query<&mut GlobalTransform, With<Round>>
+pub fn round_translations(
+    round_scale: Res<RoundUnitSize>,
+    mut entities: Query<(&mut Transform, &mut Round)>
 ) {
     let round_scale = round_scale.0;
     let iround_scale = 1.0 / round_scale;
-    for mut global_transform in &mut entities {
-        let (scale, rotation, translation) = global_transform.affine().to_scale_rotation_translation();
-        let translation = (translation * iround_scale).round() * round_scale;
-        let rounded_affine = Affine3A::from_scale_rotation_translation(scale, rotation, translation);
-        *global_transform = GlobalTransform::from(rounded_affine);
+    for (mut transf, mut round) in &mut entities {
+        round.0 = transf.translation;
+        transf.translation = (transf.translation * iround_scale).round() * round_scale;
+    }
+}
+
+pub fn restore_translations(mut entities: Query<(&mut Transform, &Round)>) {
+    for (mut transf, round) in &mut entities {
+        transf.translation = round.0;
     }
 }

@@ -1,5 +1,6 @@
 use std::f32::consts::PI;
-use bevy::pbr::CascadeShadowConfigBuilder;
+use bevy::core_pipeline::prepass::{DeferredPrepass, DepthPrepass, MotionVectorPrepass};
+use bevy::pbr::{CascadeShadowConfigBuilder, ScreenSpaceReflectionsBundle, ScreenSpaceReflectionsSettings};
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::camera::GameCameraBundle;
@@ -64,7 +65,14 @@ pub fn init_area(
             commands.spawn((Name::new("sun"), sun, Sunlight::default()));
     
             // Spawns camera
-            commands.spawn((Name::new("camera"), GameCameraBundle::default()));
+            commands.spawn((
+                Name::new("camera"),
+                GameCameraBundle::default(),
+                ScreenSpaceReflectionsBundle {
+                    settings: ScreenSpaceReflectionsSettings { linear_steps: 128, ..default() },
+                    ..default()
+                },
+            ));
 
             // Configures area, which will stream in maps into the world
             let area = assets.load::<Area>(message.file);

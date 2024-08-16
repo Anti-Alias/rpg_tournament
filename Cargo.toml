@@ -16,6 +16,7 @@ smallvec = "1"
 thiserror = "1"
 bevy_mod_sprite3d = { git="https://github.com/Anti-Alias/bevy_mod_sprite3d.git", commit="bdf837d70d51ed87303f51006e650c0b85213d6b" }
 tiled-parser = { git="https://github.com/Anti-Alias/tiled-parser.git", default-features = false, features=["flate2"], commit="e478de3225680cd1b0eae03c648454b3baf0fe7e" }
+derive_more = { version = "1.0.0", features = ["from"] }
 
 [profile.dev]
 opt-level = 1

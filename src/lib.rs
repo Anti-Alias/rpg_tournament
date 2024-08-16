@@ -8,22 +8,26 @@ mod animation;
 mod daynight;
 mod player;
 mod mobs;
+mod objects;
 mod common;
 mod input;
+mod item;
+mod equipment;
 mod debug;
 
 use bevy::prelude::*;
-use bevy::pbr::{DirectionalLightShadowMap, PbrProjectionPlugin};
+use bevy::pbr::{DefaultOpaqueRendererMethod, DirectionalLightShadowMap, PbrProjectionPlugin};
 use bevy::render::camera::CameraProjectionPlugin;
 
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_inspector_egui::quick::{ResourceInspectorPlugin, WorldInspectorPlugin};
 use bevy::utils::HashMap;
-use bevy_mod_sprite3d::{Sprite3dPlugin, Sprite3dSystems};
+use bevy_mod_sprite3d::Sprite3dPlugin;
 
 use camera::DualProjection;
 pub use action::ActionKind;
+use daynight::GameTime;
 use debug::DebugStates;
-use round::RoundScale;
+use round::RoundUnitSize;
 
 
 /// Game engine plugin.
@@ -32,19 +36,23 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(DirectionalLightShadowMap { size: 4096 });
         app.insert_resource(Msaa::Off);
+        app.insert_resource(DefaultOpaqueRendererMethod::deferred());
         app.add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),                         // Built-in bevy plugins with configuration.
             Sprite3dPlugin::<StandardMaterial>::default(),                              // Adds 3D sprite batch rendering.
             CameraProjectionPlugin::<DualProjection>::default(),                        // Custom camera projection (switch between ortho and perspective).
             PbrProjectionPlugin::<DualProjection>::default(),                           // Custom camera projection (switch between ortho and perspective).
-            WorldInspectorPlugin::default().run_if(in_state(DebugStates::Enabled)),     // Debug menu for inspecting entities and resources.
+            WorldInspectorPlugin::default()
+                .run_if(in_state(DebugStates::Enabled)),                                // Debug menu for inspecting entities and resources.
+            ResourceInspectorPlugin::<GameTime>::default()
+                .run_if(in_state(DebugStates::Enabled)),                                // Inspector for game time
         ));
 
         // States and resources
         app.init_state::<ScreenStates>();
         app.init_state::<debug::DebugStates>();
         app.init_resource::<EntityIndex>();
-        app.init_resource::<RoundScale>();
+        app.init_resource::<RoundUnitSize>();
 
         // Observers
         app.observe(action::run_action);
@@ -115,15 +123,18 @@ impl Plugin for GamePlugin {
             /////////////// PostLogic ///////////////
             (
                 camera::follow_target,
-                animation::update_animations,
+                equipment::spawn_equipment_entities,
+                animation::update_animations.after(equipment::spawn_equipment_entities),
+                animation::sync_animations.after(animation::update_animations),
                 player::sync_players,
             ).in_set(GameSystems::PostLogic),
         ));
 
         app.add_systems(PostUpdate, (
-            round::round_positions
-                .after(TransformSystem::TransformPropagate)
-                .before(Sprite3dSystems),
+            round::round_translations
+                .before(TransformSystem::TransformPropagate),
+            round::restore_translations
+                .after(TransformSystem::TransformPropagate),
             input::reset_virtual_inputs,
 
         ));

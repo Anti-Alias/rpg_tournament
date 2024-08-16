@@ -12,5 +12,5 @@ fn main() {
 
 fn startup(mut commands: Commands) {
     commands.trigger(InitArea { name: "Overworld", file: "worlds/overworld.world" });
-    commands.trigger(SpawnPlayer { position: Vec3::new(0.0, 0.0, 0.0) });
+    commands.trigger(SpawnPlayer { position: Vec3::new(200.0, 0.0, -400.0) });
 }

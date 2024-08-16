@@ -1,7 +1,8 @@
-use std::f32::consts::TAU;
+use std::f32::consts::{FRAC_1_SQRT_2, TAU};
 use std::time::Duration;
 
 use bevy::input::gamepad::{GamepadConnection, GamepadConnectionEvent, GamepadEvent};
+use bevy::math::VectorSpace;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use messages::SpawnPlayer;
@@ -9,8 +10,23 @@ use crate::animation::{Animation, AnimationBundle, AnimationSet, AnimationState}
 use crate::area::AreaStreamer;
 use crate::common::CommonAssets;
 use crate::input::{GamepadMapping, KeyboardMapping, StickConfig, StickType, VButtons, VSticks};
+use crate::equipment::{Equipment, Outfit};
 use crate::round::Round;
 use crate::EntityIndex;
+
+
+#[derive(Bundle, Default, Debug)]
+pub struct PlayerBundle {
+    pub player: Player,
+    pub equipment: Equipment,
+    pub character_controller: CharacterController,
+    pub vbuttons: VButtons,
+    pub vsticks: VSticks,
+    pub animation_bundle: AnimationBundle<StandardMaterial>,
+    pub area_streamer: AreaStreamer,
+    pub round: Round,
+}
+
 
 #[derive(Component, Copy, Clone, PartialEq, Debug)]
 pub struct Player {
@@ -97,17 +113,6 @@ impl CardinalDirection {
     }
 }
 
-#[derive(Bundle, Default, Debug)]
-pub struct PlayerBundle {
-    pub player: Player,
-    pub character_controller: CharacterController,
-    pub vbuttons: VButtons,
-    pub vsticks: VSticks,
-    pub animation_bundle: AnimationBundle<StandardMaterial>,
-    pub area_streamer: AreaStreamer,
-    pub round: Round,
-}
-
 impl Default for Player {
     fn default() -> Self {
         Self {
@@ -126,6 +131,7 @@ pub fn spawn_player(
 ) {
 
     let mut bundle = PlayerBundle::default();
+    bundle.equipment.outfit = Some(Outfit::Casual1.into());
     bundle.area_streamer =  AreaStreamer { size: Vec2::splat(32.0 * 40.0) };
     bundle.vsticks = VSticks::new(2);
     bundle.animation_bundle.animation_set = common_assets.animations.player.clone();
@@ -140,7 +146,7 @@ pub fn spawn_player(
             (KeyCode::ArrowLeft,    buttons::LEFT),
             (KeyCode::ArrowRight,   buttons::RIGHT),
             (KeyCode::ArrowUp,      buttons::UP),
-            (KeyCode::ArrowDown,    buttons::DOWN),
+            (KeyCode::ArrowDown,    buttons::DOWN), 
         ]))
         .id();
 
@@ -195,9 +201,20 @@ pub fn update_players(mut players: Query<(
         let mut direction = Vec3::ZERO;
         let using_dpad = buttons.pressed(buttons::LEFT | buttons::RIGHT | buttons::UP | buttons::DOWN);
         if using_dpad {
+            const DIAG: f32 = FRAC_1_SQRT_2;
             let (x, y) = xy_from_dpad(buttons.pressed);
             let (prev_x, prev_y) = xy_from_dpad(buttons.pressed_prev);
-            direction = Vec3::new(x as f32, 0.0, -y as f32);
+            direction = match (x, y) {
+                (1, 0) => Vec3::new(1.0, 0.0, 0.0),
+                (1, 1) => Vec3::new(DIAG, 0.0, -DIAG),
+                (0, 1) => Vec3::new(0.0, 0.0, -1.0),
+                (-1, 1) => Vec3::new(-DIAG, 0.0, -DIAG),
+                (-1, 0) => Vec3::new(-1.0, 0.0, 0.0),
+                (-1, -1) => Vec3::new(-DIAG, 0.0, DIAG),
+                (0, -1) => Vec3::new(0.0, 0.0, 1.0),
+                (1, -1) => Vec3::new(DIAG, 0.0, DIAG),
+                _ => Vec3::ZERO,
+            };
             if let Some(card_dir) = card_dir_from_xy(x, y, prev_x, prev_y) {
                 player.card_dir = card_dir;
             }
@@ -205,14 +222,13 @@ pub fn update_players(mut players: Query<(
         else {
             let stick = sticks.get(sticks::LEFT).unwrap();
             let stick = Vec3::new(stick.x, 0.0, -stick.y);
-            direction += stick;
+            direction = (direction + stick).clamp_length_max(1.0);
             if let Some(card_dir) = CardinalDirection::from_vec2(Vec2::new(direction.x, -direction.z)) {
                 player.card_dir = card_dir;
             }
         }
 
         // Applies direction to velocity
-        let direction = direction.clamp_length_max(1.0);
         let (cc_speed, cc_friction) = cc.speed_friction();
         cc.velocity += direction * cc_speed;
         cc.velocity *= cc_friction;
@@ -325,7 +341,7 @@ pub(crate) fn create_material(assets: &AssetServer, path: &'static str) -> Stand
     }
 }
 
-/// Utility function to create the animations a player uses
+/// Utility function to create the animations a player uses.
 pub(crate) fn create_player_animations() -> AnimationSet {
     const SIZE: Vec2 = Vec2::new(64.0, 64.0);
     const STRIDE: Vec2 = Vec2::new(64.0, 0.0);

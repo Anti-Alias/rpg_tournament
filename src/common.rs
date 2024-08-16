@@ -15,7 +15,6 @@ impl FromWorld for CommonAssets {
     fn from_world(world: &mut World) -> Self {
         let assets = world.resource::<AssetServer>().clone();
         let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
-
         let materials = CommonMaterials::new(&assets, &mut materials);
         let mut meshes = world.resource_mut::<Assets<Mesh>>();
         let meshes = CommonMeshes::new(&mut meshes);
@@ -28,12 +27,14 @@ impl FromWorld for CommonAssets {
 #[derive(Debug)]
 pub struct CommonMeshes {
     pub sphere: Handle<Mesh>,
+    pub plane: Handle<Mesh>,
 }
 
 impl CommonMeshes {
     fn new(meshes: &mut Assets<Mesh>) -> Self {
         Self {
             sphere: meshes.add(Sphere::new(1.0)),
+            plane: meshes.add(Plane3d::new(Vec3::Y, Vec2::new(0.5, 0.5)))
         }
     }
 }
