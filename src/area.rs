@@ -1,4 +1,5 @@
 use std::f32::consts::PI;
+use bevy::pbr::CascadeShadowConfigBuilder;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::camera::GameCameraBundle;
@@ -53,6 +54,13 @@ pub fn init_area(
             sun.directional_light.shadows_enabled = true;
             sun.directional_light.illuminance *= 0.5;
             sun.transform.rotate(Quat::from_euler(EulerRot::YXZ, PI/4.0, -PI/4.0, 0.0));
+            sun.cascade_shadow_config = CascadeShadowConfigBuilder {
+                num_cascades: 1,
+                minimum_distance: 128.0,
+                maximum_distance: 1024.0,
+                overlap_proportion: 0.0,
+                ..default()
+            }.build();
             commands.spawn((Name::new("sun"), sun, Sunlight::default()));
     
             // Spawns camera

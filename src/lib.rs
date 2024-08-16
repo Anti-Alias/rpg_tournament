@@ -13,7 +13,7 @@ mod input;
 mod debug;
 
 use bevy::prelude::*;
-use bevy::pbr::PbrProjectionPlugin;
+use bevy::pbr::{DirectionalLightShadowMap, PbrProjectionPlugin};
 use bevy::render::camera::CameraProjectionPlugin;
 
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -30,9 +30,10 @@ use round::RoundScale;
 pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
+        app.insert_resource(DirectionalLightShadowMap { size: 4096 });
         app.insert_resource(Msaa::Off);
         app.add_plugins((
-            DefaultPlugins.set(ImagePlugin::default_nearest()),                         // Built-in bevy plugins with configuratio0n.
+            DefaultPlugins.set(ImagePlugin::default_nearest()),                         // Built-in bevy plugins with configuration.
             Sprite3dPlugin::<StandardMaterial>::default(),                              // Adds 3D sprite batch rendering.
             CameraProjectionPlugin::<DualProjection>::default(),                        // Custom camera projection (switch between ortho and perspective).
             PbrProjectionPlugin::<DualProjection>::default(),                           // Custom camera projection (switch between ortho and perspective).

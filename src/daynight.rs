@@ -33,6 +33,7 @@ pub fn update_game_time(
     // Manipulates sun using time fraction
     let sun_bright = sun_brightness(time_frac);
     let sun_rot_y = sun_rotation_y(time_frac, -0.9, 0.9);
+    let sun_rot_y = (sun_rot_y * 300.0).round() / 300.0;
     let sun_rot = Quat::from_euler(EulerRot::YXZ, sun_rot_y, -1.0, 0.0);
     for (mut dir_light, sunlight, mut transf) in &mut sunlights {
         dir_light.color = AMBIENT_NIGHT_COLOR.mix(&AMBIENT_DAY_COLOR, amb_bright);
@@ -110,7 +111,7 @@ impl GameTime {
 
 impl Default for GameTime {
     fn default() -> Self {
-        let day_duration = Duration::from_secs(10);
+        let day_duration = Duration::from_secs(60 * 20);
         let elapsed = day_duration / 2;
         Self {
             elapsed,
