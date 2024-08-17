@@ -10,7 +10,7 @@ use crate::animation::{Animation, AnimationBundle, AnimationSet, AnimationState}
 use crate::area::AreaStreamer;
 use crate::common::CommonAssets;
 use crate::input::{GamepadMapping, KeyboardMapping, StickConfig, StickType, VButtons, VSticks};
-use crate::equipment::{Equipment, Outfit};
+use crate::equipment::{Equipment, Hair, HairKind, Hat, Outfit};
 use crate::round::Round;
 use crate::EntityIndex;
 
@@ -129,8 +129,12 @@ pub fn spawn_player(
     mut entity_index: ResMut<EntityIndex>,
     mut commands: Commands,
 ) {
-
     let mut bundle = PlayerBundle::default();
+    bundle.equipment.hair = Some(Hair {
+        kind: HairKind::Ponytail,
+        color: Color::linear_rgb(1.0, 1.0, 0.0),
+        brightness: 0.0
+    }.into());
     bundle.equipment.outfit = Some(Outfit::Casual1.into());
     bundle.area_streamer =  AreaStreamer { size: Vec2::splat(32.0 * 40.0) };
     bundle.vsticks = VSticks::new(2);

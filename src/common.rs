@@ -49,7 +49,7 @@ impl CommonMaterials {
     fn new(assets: &AssetServer, materials: &mut Assets<StandardMaterial>) -> Self {
         Self {
             white: materials.add(StandardMaterial { base_color: Color::WHITE, unlit: true, ..default() }),
-            player: materials.add(player::create_material(assets, "player/base/light_walk.png"))
+            player: materials.add(player::create_material(assets, "player/base/char_a_p1_0bas_humn_v00.png"))
         }
     }
 }

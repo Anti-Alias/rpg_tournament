@@ -16,7 +16,7 @@ mod equipment;
 mod debug;
 
 use bevy::prelude::*;
-use bevy::pbr::{DefaultOpaqueRendererMethod, DirectionalLightShadowMap, PbrProjectionPlugin};
+use bevy::pbr::{DirectionalLightShadowMap, PbrProjectionPlugin};
 use bevy::render::camera::CameraProjectionPlugin;
 
 use bevy_inspector_egui::quick::{ResourceInspectorPlugin, WorldInspectorPlugin};
@@ -27,6 +27,7 @@ use camera::DualProjection;
 pub use action::ActionKind;
 use daynight::GameTime;
 use debug::DebugStates;
+use equipment::Equipment;
 use round::RoundUnitSize;
 
 
@@ -36,7 +37,6 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(DirectionalLightShadowMap { size: 4096 });
         app.insert_resource(Msaa::Off);
-        app.insert_resource(DefaultOpaqueRendererMethod::deferred());
         app.add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),                         // Built-in bevy plugins with configuration.
             Sprite3dPlugin::<StandardMaterial>::default(),                              // Adds 3D sprite batch rendering.
@@ -47,6 +47,7 @@ impl Plugin for GamePlugin {
             ResourceInspectorPlugin::<GameTime>::default()
                 .run_if(in_state(DebugStates::Enabled)),                                // Inspector for game time
         ));
+        app.register_type::<Equipment>();
 
         // States and resources
         app.init_state::<ScreenStates>();

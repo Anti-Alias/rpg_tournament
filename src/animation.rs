@@ -175,12 +175,12 @@ pub fn update_animations(
                     AnimationMode::Loop => (anim_state.frame_idx + 1) % anim.frames.len(),
                 };
                 anim_state.frame_elapsed -= frame.duration;
-                *sprite = frame.sprite.clone();
+                sync_sprite(&mut sprite, &frame.sprite);
             }
 
             // If not, animation is complete. Move on to the next one.
             else {
-                if anim_state_changed { *sprite = frame.sprite.clone() }
+                sync_sprite(&mut sprite, &frame.sprite);
                 break;
             }
         }
@@ -192,11 +192,20 @@ pub fn sync_animations(
     mut sync_q: Query<(&mut Sprite3d, &AnimationSync)>,
     animation_q: Query<&Sprite3d, Without<AnimationSync>>,
 ) {
-    for (mut sync_sprite, AnimationSync(anim_id)) in &mut sync_q {
+    for (mut dest_sprite, AnimationSync(anim_id)) in &mut sync_q {
         let Ok(anim_sprite) = animation_q.get(*anim_id) else {
             bevy::log::warn!("Failed to look up sprite to sync with");
             continue;
         };
-        *sync_sprite = anim_sprite.clone();
+        sync_sprite(&mut *dest_sprite, &anim_sprite);
     }
+}
+
+
+fn sync_sprite(dest: &mut Sprite3d, src: &Sprite3d) {
+    dest.flip_x = src.flip_x;
+    dest.flip_y = src.flip_y;
+    dest.custom_size = src.custom_size;
+    dest.rect = src.rect;
+    dest.anchor = src.anchor;
 }

@@ -39,7 +39,7 @@
    H4sIAAAAAAAACu3PzU2CQRhF4flKEbQQEFZAEQKulCL4caUWAcIKaAJZUgW4pAhOB8xMTJiQ8yRnN8l7JwRJknTNQxVCjer0SE/Vfdz6bw22NumZWtSO2N7hTZd6if/MuVWKF7b2aUBDeo3Y/sabdxol/jPnVinGbJ3QlGb0EbH9kzdf9J34z5xbpZizdUE/tKRVxPY1bza0Tfxnzq2S7Nj7S/uE3YfMP+bcKsWRzSf6S9h+zvxnzi1JkiRJkiRJkiTd3gW2ZwpueCgAAA==
   </data>
   </layer>
-  <layer id="65" name=":mesh:" width="74" height="35">
+  <layer id="65" name=":mesh:" width="74" height="35" visible="0">
    <data encoding="base64" compression="gzip">
    H4sIAAAAAAAACu3QsQkAIAwEQMHVbNx/IQdIYQgKInfw9SffGgCwM3vMD12njR6zU/2z0vWKyu3VP+10r+sVdsqxU46dAAAAAAAAyFhmh3oYeCgAAA==
   </data>

@@ -10,8 +10,8 @@ pub fn spawn_water(
     assets: &AssetServer,
 ) {
     let material = StandardMaterial {
-        base_color: LinearRgba::from_u8_array([0, 220, 255, 72]).into(),
-        alpha_mode: AlphaMode::Opaque,
+        base_color: LinearRgba::from_u8_array([0, 200, 200, 50]).into(),
+        alpha_mode: AlphaMode::Blend,
         perceptual_roughness: 0.0,
         reflectance: 1.0,
         ior: 1.33,
