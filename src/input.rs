@@ -74,7 +74,7 @@ impl VSticks {
 /// Maps key presses to virtual button presses on an entity.
 #[derive(Component, Clone, Default, Debug)]
 pub struct KeyboardMapping {
-    key_mappings: SmallVec<[(KeyCode, u32); 8]>,
+    key_mappings: Vec<(KeyCode, u32)>,
 }
 
 impl<I> From<I> for KeyboardMapping

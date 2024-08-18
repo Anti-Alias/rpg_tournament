@@ -2,15 +2,16 @@ use std::f32::consts::{FRAC_1_SQRT_2, TAU};
 use std::time::Duration;
 
 use bevy::input::gamepad::{GamepadConnection, GamepadConnectionEvent, GamepadEvent};
-use bevy::math::VectorSpace;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
+
 use messages::SpawnPlayer;
 use crate::animation::{Animation, AnimationBundle, AnimationSet, AnimationState};
 use crate::area::AreaStreamer;
 use crate::common::CommonAssets;
 use crate::input::{GamepadMapping, KeyboardMapping, StickConfig, StickType, VButtons, VSticks};
-use crate::equipment::{Equipment, Hair, HairKind, Hat, Outfit};
+use crate::equipment::{Equipment, Hair, HairKind, Outfit};
+use crate::messages::ToggleEquipmentMenu;
 use crate::round::Round;
 use crate::EntityIndex;
 
@@ -26,7 +27,6 @@ pub struct PlayerBundle {
     pub area_streamer: AreaStreamer,
     pub round: Round,
 }
-
 
 #[derive(Component, Copy, Clone, PartialEq, Debug)]
 pub struct Player {
@@ -126,40 +126,50 @@ impl Default for Player {
 pub fn spawn_player(
     trigger: Trigger<SpawnPlayer>,
     common_assets: Res<CommonAssets>,
+    gamepads: Res<Gamepads>,
     mut entity_index: ResMut<EntityIndex>,
     mut commands: Commands,
 ) {
-    let mut bundle = PlayerBundle::default();
-    bundle.equipment.hair = Some(Hair {
+
+    let player_hair = Hair {
         kind: HairKind::Ponytail,
         color: Color::linear_rgb(1.0, 1.0, 0.0),
         brightness: 0.0
-    }.into());
-    bundle.equipment.outfit = Some(Outfit::Casual1.into());
-    bundle.area_streamer =  AreaStreamer { size: Vec2::splat(32.0 * 40.0) };
-    bundle.vsticks = VSticks::new(2);
-    bundle.animation_bundle.animation_set = common_assets.animations.player.clone();
-    bundle.animation_bundle.animation_state = AnimationState { animation_idx: animations::WALK_BASE, ..default() };
-    bundle.animation_bundle.material = common_assets.materials.player.clone();
+    }.into();
+
+    let mut player_bundle = PlayerBundle::default();
+    player_bundle.equipment.hair = Some(player_hair);
+    player_bundle.equipment.outfit = Some(Outfit::Casual1.into());
+    player_bundle.area_streamer =  AreaStreamer { size: Vec2::splat(32.0 * 40.0) };
+    player_bundle.vsticks = VSticks::new(2);
+    player_bundle.animation_bundle.animation_set = common_assets.animations.player.clone();
+    player_bundle.animation_bundle.animation_state = AnimationState { animation_idx: animations::WALK_BASE, ..default() };
+    player_bundle.animation_bundle.material = common_assets.materials.player.clone();
 
     let player_id = commands
-        .spawn(bundle)
-        .insert(Name::new("player"))
-        .insert(Transform::from_translation(trigger.event().position))
-        .insert(KeyboardMapping::from([
-            (KeyCode::ArrowLeft,    buttons::LEFT),
-            (KeyCode::ArrowRight,   buttons::RIGHT),
-            (KeyCode::ArrowUp,      buttons::UP),
-            (KeyCode::ArrowDown,    buttons::DOWN), 
-        ]))
+        .spawn(player_bundle)
+        .insert((
+            Name::new("player"),
+            Transform::from_translation(trigger.event().position),
+            KeyboardMapping::from([
+                (KeyCode::ArrowLeft,    buttons::LEFT),
+                (KeyCode::ArrowRight,   buttons::RIGHT),
+                (KeyCode::ArrowUp,      buttons::UP),
+                (KeyCode::ArrowDown,    buttons::DOWN),
+                (KeyCode::Enter,        buttons::START),
+            ]),
+        ))
         .id();
-
+    if let Some(first_gamepad) = gamepads.iter().next() {
+        let mapping = create_gamepad_mapping(first_gamepad);
+        commands.entity(player_id).insert(mapping);
+    }
     entity_index.player = Some(player_id);
 }
 
 
-/// When the first gamepad connects, assign it to a [`Player`] entity.
-/// When the first gamepad disconnects, unassign it from the [`Player`] entity.
+/// Inserts / removes a gamepad mapping to the player whenever a gamepad connects disconnects.
+/// Does nothing if already inserted.
 pub fn assign_gamepad_to_player(
     mut events: EventReader<GamepadEvent>,
     mut players: Query<Entity, With<Player>>,
@@ -169,19 +179,13 @@ pub fn assign_gamepad_to_player(
     for event in events.read() {
         match event {
             GamepadEvent::Connection(GamepadConnectionEvent { gamepad, connection: GamepadConnection::Connected(_) }) => {
-                if gamepads.iter().count() != 1 { break }
-                let mapping = GamepadMapping::new(gamepad.clone())
-                    .with_button(GamepadButtonType::DPadLeft, buttons::LEFT)
-                    .with_button(GamepadButtonType::DPadRight, buttons::RIGHT)
-                    .with_button(GamepadButtonType::DPadUp, buttons::UP)
-                    .with_button(GamepadButtonType::DPadDown, buttons::DOWN)
-                    .with_stick(StickType::Left, StickConfig { vstick_idx: sticks::LEFT, deadzones: Vec2::new(0.125, 0.125) });
+                let mapping = create_gamepad_mapping(gamepad.clone());
                 for player_id in &mut players {
                     commands.entity(player_id).insert(mapping.clone());
                 }
             },
             GamepadEvent::Connection(GamepadConnectionEvent { connection: GamepadConnection::Disconnected, .. }) => {
-                if gamepads.iter().count() != 0 { break }
+                if gamepads.iter().count() != 0 { continue }    // Only remove if it was the last gamepad to disconnect
                 for player_id in &mut players {
                     commands.entity(player_id).remove::<GamepadMapping>();
                 }   
@@ -191,11 +195,14 @@ pub fn assign_gamepad_to_player(
     }
 }
 
-pub fn update_players(mut players: Query<(
-    &mut Player,
-    &mut CharacterController,
-    &VButtons,
-    &VSticks)>
+pub fn update_players(
+    mut commands: Commands,
+    mut players: Query<(
+        &mut Player,
+        &mut CharacterController,
+        &VButtons,
+        &VSticks
+    )>
 ) {
     for (mut player, mut cc, buttons, sticks) in &mut players {
 
@@ -257,6 +264,11 @@ pub fn update_players(mut players: Query<(
                 }
             },
         };
+
+        // Opens equipment menu
+        if buttons.just_pressed(buttons::START) {
+            commands.trigger(ToggleEquipmentMenu);
+        }
     }
 }
 
@@ -333,6 +345,7 @@ pub fn sync_players(mut players: Query<&mut Player>) {
 }
 
 
+
 pub(crate) fn create_material(assets: &AssetServer, path: &'static str) -> StandardMaterial {
     StandardMaterial {
         base_color_texture: Some(assets.load::<Image>(path)),
@@ -343,6 +356,16 @@ pub(crate) fn create_material(assets: &AssetServer, path: &'static str) -> Stand
         double_sided: false,
         ..default()
     }
+}
+
+fn create_gamepad_mapping(gamepad: Gamepad) -> GamepadMapping {
+    GamepadMapping::new(gamepad)
+        .with_button(GamepadButtonType::DPadLeft, buttons::LEFT)
+        .with_button(GamepadButtonType::DPadRight, buttons::RIGHT)
+        .with_button(GamepadButtonType::DPadUp, buttons::UP)
+        .with_button(GamepadButtonType::DPadDown, buttons::DOWN)
+        .with_button(GamepadButtonType::Start, buttons::START)
+        .with_stick(StickType::Left, StickConfig { vstick_idx: sticks::LEFT, deadzones: Vec2::new(0.125, 0.125) })
 }
 
 /// Utility function to create the animations a player uses.
@@ -380,6 +403,7 @@ pub mod buttons {
     pub const RIGHT: u32    = 1 << 1;
     pub const UP: u32       = 1 << 2;
     pub const DOWN: u32     = 1 << 3;
+    pub const START: u32    = 1 << 4;
 }
 
 /// Stick index

@@ -1,7 +1,5 @@
 use std::f32::consts::PI;
-use bevy::core_pipeline::prepass::{DeferredPrepass, DepthPrepass, MotionVectorPrepass};
-use bevy::core_pipeline::Skybox;
-use bevy::pbr::{CascadeShadowConfigBuilder, ScreenSpaceReflectionsBundle, ScreenSpaceReflectionsSettings};
+use bevy::pbr::CascadeShadowConfigBuilder;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::camera::GameCameraBundle;

@@ -15,25 +15,6 @@ pub struct Equipment {
     pub feet: Option<Equippable>,
 }
 
-/// Stores handles to loading equippable images.
-#[derive(Component, Default, Debug)]
-pub struct EquipmentImages {
-    pub hair: Option<Handle<Image>>,
-    pub hat: Option<Handle<Image>>,
-    pub outfit: Option<Handle<Image>>,
-    pub hands: Option<Handle<Image>>,
-    pub feet: Option<Handle<Image>>,
-}
-
-impl EquipmentImages {
-    fn is_loaded(&self, images: &Assets<Image>) -> bool {
-        if let Some(ref hair) = self.hair {
-            if !images.contains(hair) { return false }
-        }
-        true
-    }
-}
-
 /// Type of equippable.
 #[derive(Reflect, From, Clone, PartialEq, Debug)]
 #[reflect(Default)]
@@ -52,21 +33,22 @@ impl Default for Equippable {
 impl Equippable {
     pub fn info(&self) -> EquippableInfo {
         match *self {
-            Self::Hair(Hair { kind: HairKind::Spikey, color, brightness })      => EquippableInfo { image: "player/hair/char_a_p1_4har_spk2_v00.png", color, brightness },
-            Self::Hair(Hair { kind: HairKind::Bob, color, brightness })         => EquippableInfo { image: "player/hair/char_a_p1_4har_bob2_v00.png", color, brightness },
-            Self::Hair(Hair { kind: HairKind::Ponytail, color, brightness })    => EquippableInfo { image: "player/hair/char_a_p1_4har_pon1_v00.png", color, brightness },
-            Self::Hat(Hat::Pointy)                                  => EquippableInfo { image: "player/hat/char_a_p1_5hat_pnty_v01.png", ..default() },
-            Self::Outfit(Outfit::Casual1)                           => EquippableInfo { image: "player/outfit/casual_1.png", ..default() },
-            Self::Outfit(Outfit::Casual2)                           => EquippableInfo { image: "player/outfit/casual_2.png", ..default() },
-            Self::Outfit(Outfit::Casual3)                           => EquippableInfo { image: "player/outfit/casual_3.png", ..default() },
-            Self::Outfit(Outfit::Casual4)                           => EquippableInfo { image: "player/outfit/casual_4.png", ..default() },
-            Self::Outfit(Outfit::Casual5)                           => EquippableInfo { image: "player/outfit/casual_5.png", ..default() },
+            Self::Hair(Hair { kind: HairKind::Spikey, color, brightness })      => EquippableInfo { name: "Spikey", image: "player/hair/char_a_p1_4har_spk2_v00.png", color, brightness },
+            Self::Hair(Hair { kind: HairKind::Bob, color, brightness })         => EquippableInfo { name: "Bob Cut", image: "player/hair/char_a_p1_4har_bob2_v00.png", color, brightness },
+            Self::Hair(Hair { kind: HairKind::Ponytail, color, brightness })    => EquippableInfo { name: "Ponytail", image: "player/hair/char_a_p1_4har_pon1_v00.png", color, brightness },
+            Self::Hat(Hat::Pointy)                                              => EquippableInfo { name: "Pointy Hat", image: "player/hat/char_a_p1_5hat_pnty_v01.png", ..default() },
+            Self::Outfit(Outfit::Casual1)                                       => EquippableInfo { name: "Casual 1", image: "player/outfit/casual_1.png", ..default() },
+            Self::Outfit(Outfit::Casual2)                                       => EquippableInfo { name: "Casual 2", image: "player/outfit/casual_2.png", ..default() },
+            Self::Outfit(Outfit::Casual3)                                       => EquippableInfo { name: "Casual 3", image: "player/outfit/casual_3.png", ..default() },
+            Self::Outfit(Outfit::Casual4)                                       => EquippableInfo { name: "Casual 4", image: "player/outfit/casual_4.png", ..default() },
+            Self::Outfit(Outfit::Casual5)                                       => EquippableInfo { name: "Casual 5", image: "player/outfit/casual_5.png", ..default() },
         }
     }
 }
 
 #[derive(Copy, Clone, PartialEq, Default, Debug)]
 pub struct EquippableInfo {
+    pub name: &'static str,
     pub image: &'static str,
     pub color: Color,
     pub brightness: f32,
@@ -155,10 +137,7 @@ pub fn spawn_equipment_entities(
                 transform: Transform::from_xyz(0.0, offset, offset),
                 ..default()
             })
-            .insert((
-                Name::new("hair"),
-                AnimationSync(parent),
-            ))
+            .insert((Name::new("hair"), AnimationSync(parent)))
             .id();
             commands.entity(parent).add_child(item_id);
     };
