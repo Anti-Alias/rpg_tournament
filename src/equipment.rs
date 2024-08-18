@@ -46,12 +46,23 @@ impl Equippable {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Default, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct EquippableInfo {
     pub name: &'static str,
     pub image: &'static str,
     pub color: Color,
     pub brightness: f32,
+}
+
+impl Default for EquippableInfo {
+    fn default() -> Self {
+        Self {
+            name: "",
+            image: "",
+            color: Color::WHITE,
+            brightness: 1.0,
+        }
+    }
 }
 
 #[derive(Reflect, Clone, PartialEq, Debug)]
@@ -67,7 +78,7 @@ impl Default for Hair {
         Self {
             kind: HairKind::default(),
             color: Color::WHITE,
-            brightness: 0.0,
+            brightness: 1.0,
         }
     }
 }
@@ -126,7 +137,7 @@ pub fn spawn_equipment_entities(
     // Logic that spawns an item as the child of another entity.
     let spawn_equippable = |parent: Entity, equippable: &Equippable, offset: f32, commands: &mut Commands| {
         let item_info = equippable.info();
-        let item_color = item_info.color.to_linear() * (item_info.brightness + 1.0);
+        let item_color = item_info.color.to_linear() * (item_info.brightness);
         let item_mat = create_material(&assets, item_info.image);
         let item_id = commands
             .spawn(AnimationBundle {

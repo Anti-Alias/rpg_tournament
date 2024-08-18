@@ -4,6 +4,7 @@ use super::Dsl;
 #[derive(Clone, Default, Debug, Deref, DerefMut)]
 pub struct NodeW(pub NodeBundle);
 impl NodeW {
+    #[allow(unused)]
     pub fn new() -> Self {
         Self(NodeBundle::default())
     }
@@ -12,10 +13,7 @@ impl NodeW {
         class(&mut result);
         result
     }
-    pub fn bgcolor(mut self, color: Color) -> Self {
-        self.background_color = color.into();
-        self
-    }
+    #[allow(unused)]
     pub fn spawn(self, dsl: &mut Dsl) {
         dsl.spawn(self.0);
     }
@@ -25,6 +23,7 @@ impl NodeW {
     pub fn end(dsl: &mut Dsl) {
         dsl.end()
     }
+    #[allow(unused)]
     pub fn class(mut self, class: impl Fn(&mut Self)) -> Self {
         class(&mut self);
         self
@@ -48,6 +47,7 @@ impl TextW {
         self.set_font_size(font_size);
         self
     }
+    #[allow(unused)]
     pub fn end(dsl: &mut Dsl) {
         dsl.end()
     }
@@ -69,45 +69,6 @@ impl TextW {
         for text_section in &mut self.0.text.sections {
             text_section.style.font_size = font_size;
         }
-    }
-}
-
-#[derive(Clone, Default, Debug, Deref, DerefMut)]
-pub struct WButton(pub ButtonBundle);
-impl WButton {
-    pub fn begin(self, dsl: &mut Dsl) {
-        dsl.begin(self.0);
-    }
-    pub fn end(dsl: &mut Dsl) {
-        dsl.end();
-    }
-    pub fn class(mut self, class: impl Fn(&mut Self)) -> Self {
-        class(&mut self);
-        self
-    }
-}
-
-#[derive(Default, Debug, Deref, DerefMut)]
-pub struct ImageW(ImageBundle);
-impl ImageW {
-    pub fn new(image: &Handle<Image>) -> Self {
-        Self(ImageBundle {
-            image: UiImage { texture: image.clone(), ..default() },
-            ..default()
-        })
-    }
-    pub fn spawn(self, dsl: &mut Dsl) {
-        dsl.spawn(self.0);
-    }
-    pub fn begin(self, dsl: &mut Dsl) {
-        dsl.begin(self.0);
-    }
-    pub fn end(dsl: &mut Dsl) {
-        dsl.end();
-    }
-    pub fn class(mut self, class: impl Fn(&mut Self)) -> Self {
-        class(&mut self);
-        self
     }
 }
 
@@ -214,9 +175,12 @@ impl<E: Event + Clone> TextButtonW<E> {
             dsl.commands.entity(id).insert(OnPress(on_press));
         }
     }
+
+    #[allow(unused)]
     pub fn end(dsl: &mut Dsl) {
         dsl.end()
     }
+    #[allow(unused)]
     pub fn class(mut self, class: impl Fn(&mut Self)) -> Self {
         class(&mut self);
         self

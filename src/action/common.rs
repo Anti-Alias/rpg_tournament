@@ -37,6 +37,7 @@ where
     R: Send + Sync + 'static,
 {
     #[inline(always)]
+    #[allow(unused)]
     pub fn new(callback: C) -> Self {
         Self::Do(callback)
     }
@@ -71,6 +72,7 @@ where
     R: Send + Sync + 'static,
 {
     #[inline(always)]
+    #[allow(unused)]
     pub fn new(callback: C) -> Self {
         Self::Do(callback)
     }

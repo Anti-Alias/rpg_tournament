@@ -41,6 +41,7 @@ impl Plugin for GamePlugin {
         app.insert_resource(DirectionalLightShadowMap { size: 4096 });
         app.insert_resource(Msaa::Off);
         app.insert_resource(UiScale(2.0));
+        
         app.add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),                         // Built-in bevy plugins with configuration.
             Sprite3dPlugin::<StandardMaterial>::default(),                              // Adds 3D sprite batch rendering.
@@ -170,6 +171,7 @@ pub enum GameSystems {
     /// IE: Reaction to hitboxes, animations etc.
     PostLogic,
 }
+
 
 
 #[derive(States, Clone, Eq, PartialEq, Hash, Default, Debug)]

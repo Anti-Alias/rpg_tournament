@@ -5,6 +5,7 @@ use bevy::input::gamepad::{GamepadConnection, GamepadConnectionEvent, GamepadEve
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 
+
 use messages::SpawnPlayer;
 use crate::animation::{Animation, AnimationBundle, AnimationSet, AnimationState};
 use crate::area::AreaStreamer;
@@ -134,7 +135,7 @@ pub fn spawn_player(
     let player_hair = Hair {
         kind: HairKind::Ponytail,
         color: Color::linear_rgb(1.0, 1.0, 0.0),
-        brightness: 0.0
+        brightness: 1.0
     }.into();
 
     let mut player_bundle = PlayerBundle::default();

@@ -31,6 +31,7 @@ impl VButtons {
     }
 
     /// True if none of the buttons are pressed this frame, but at least one was the previous frame.
+    #[allow(unused)]
     pub fn just_released(&self, button_bits: u32) -> bool {
         let any_pressed = self.pressed & button_bits != 0;
         let any_pressed_prev = self.pressed_prev & button_bits != 0;

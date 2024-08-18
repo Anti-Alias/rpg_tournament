@@ -3,19 +3,16 @@ name = "rpg_tournament"
 version = "0.1.0"
 edition = "2021"
 
-[dev-dependencies]
-bevy = { version = "0.14", features = ["dynamic_linking"] }
-
 [dependencies]
-bevy = { version = "0.14" }
+bevy = { version = "0.14", features=["dynamic_linking"] }
 bevy-inspector-egui = "0.25.1"
 bitflags = "2"
 extension-trait = "1"
-rand = "0.8"
+rand = "0.8"    
 smallvec = "1"
 thiserror = "1"
-bevy_mod_sprite3d = { git="https://github.com/Anti-Alias/bevy_mod_sprite3d.git", commit="bdf837d70d51ed87303f51006e650c0b85213d6b" }
-tiled-parser = { git="https://github.com/Anti-Alias/tiled-parser.git", default-features = false, features=["flate2"], commit="e478de3225680cd1b0eae03c648454b3baf0fe7e" }
+bevy_mod_sprite3d = { git="https://github.com/Anti-Alias/bevy_mod_sprite3d.git", rev="bdf837d70d51ed87303f51006e650c0b85213d6b" }
+tiled-parser = { git="https://github.com/Anti-Alias/tiled-parser.git", default-features = false, features=["flate2"] }
 derive_more = { version = "1.0.0", features = ["from"] }
 
 [profile.dev]

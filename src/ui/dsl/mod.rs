@@ -25,6 +25,7 @@ impl<'a, 'w, 's> Dsl<'a, 'w, 's> {
         }
     }
 
+    #[allow(unused)]
     pub fn root(commands: &'a mut Commands<'w, 's>) -> Self {
         Self {
             commands,
@@ -62,11 +63,6 @@ impl<'a, 'w, 's> Dsl<'a, 'w, 's> {
     pub fn end(&mut self) {
         let old_parent = self.stack.pop();
         assert!(old_parent.is_some(), "end() called too many times");
-    }
-
-    /// The last entity inserted.
-    pub fn last_opt(&self) -> Option<Entity> {
-        self.last
     }
 
     /// The last entity inserted.
