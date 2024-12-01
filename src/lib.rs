@@ -20,13 +20,13 @@ use bevy::prelude::*;
 use bevy::pbr::{DirectionalLightShadowMap, PbrProjectionPlugin};
 use bevy::render::camera::CameraProjectionPlugin;
 
-use bevy_inspector_egui::quick::{ResourceInspectorPlugin, WorldInspectorPlugin};
-use bevy::utils::HashMap;
+//use bevy_inspector_egui::quick::{ResourceInspectorPlugin, WorldInspectorPlugin};
+use bevy::utils::{warn, HashMap};
 use bevy_mod_sprite3d::Sprite3dPlugin;
 
 use camera::DualProjection;
 pub use action::ActionKind;
-use daynight::GameTime;
+// use daynight::GameTime;
 use debug::DebugStates;
 use equipment::Equipment;
 use round::RoundUnitSize;
@@ -39,7 +39,6 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(DirectionalLightShadowMap { size: 4096 });
-        app.insert_resource(Msaa::Off);
         app.insert_resource(UiScale(2.0));
         
         app.add_plugins((
@@ -47,10 +46,8 @@ impl Plugin for GamePlugin {
             Sprite3dPlugin::<StandardMaterial>::default(),                              // Adds 3D sprite batch rendering.
             CameraProjectionPlugin::<DualProjection>::default(),                        // Custom camera projection (switch between ortho and perspective).
             PbrProjectionPlugin::<DualProjection>::default(),                           // Custom camera projection (switch between ortho and perspective).
-            WorldInspectorPlugin::default()
-                .run_if(in_state(DebugStates::Enabled)),                                // Debug menu for inspecting entities and resources.
-            ResourceInspectorPlugin::<GameTime>::default()
-                .run_if(in_state(DebugStates::Enabled)),                                // Inspector for game time
+            // WorldInspectorPlugin::default().run_if(in_state(DebugStates::Enabled)),  // Debug menu for inspecting entities and resources.
+            // ResourceInspectorPlugin::<GameTime>::default().run_if(in_state(DebugStates::Enabled)),                                // Inspector for game time
         ));
         app.register_type::<Equipment>();
 
@@ -61,15 +58,15 @@ impl Plugin for GamePlugin {
         app.init_resource::<RoundUnitSize>();
 
         // Observers
-        app.observe(action::run_action);
-        app.observe(action::quit_action);
-        app.observe(map::spawn_map);
-        app.observe(map::despawn_map);
-        app.observe(map::spawn_entity);
-        app.observe(player::spawn_player);
-        app.observe(area::init_area);
-        app.observe(ui::toggle_equipment_menu);
-        app.observe(ui::handle_menu_events);
+        app.add_observer(action::run_action);
+        app.add_observer(action::quit_action);
+        app.add_observer(map::spawn_map);
+        app.add_observer(map::despawn_map);
+        app.add_observer(map::spawn_entity);
+        app.add_observer(player::spawn_player);
+        app.add_observer(area::init_area);
+        app.add_observer(ui::toggle_equipment_menu);
+        app.add_observer(ui::handle_menu_events);
 
         // Daynight
         app.init_resource::<daynight::GameTime>();
@@ -82,9 +79,6 @@ impl Plugin for GamePlugin {
         app.init_asset_loader::<map::MapLoader>();
         app.init_asset_loader::<map::TilesetLoader>();
         app.init_asset_loader::<map::AreaLoader>();
-        
-        // Common
-        app.init_resource::<common::CommonAssets>();
 
         // System sets
         app.configure_sets(Update, (
@@ -101,16 +95,14 @@ impl Plugin for GamePlugin {
             (
                 input::map_keyboard,
                 input::map_gamepads,
-                ui::render_equipment_menu
-                    .run_if(resource_exists_and_changed::<EquipmentMenu>),
+                ui::render_equipment_menu.run_if(resource_exists_and_changed::<EquipmentMenu>),
                 player::assign_gamepad_to_player,
                 action::run_action_queues,
                 map::process_loaded_maps,
                 area::stream_current_area,
                 area::despawn_area_locals,
                 daynight::update_game_time,
-                area::reload_area
-                    .run_if(in_state(DebugStates::Enabled)),
+                area::reload_area.run_if(in_state(DebugStates::Enabled)),
             ).in_set(GameSystems::Prepare),
 
             /////////////// Flush ///////////////
@@ -142,12 +134,9 @@ impl Plugin for GamePlugin {
         ));
 
         app.add_systems(PostUpdate, (
-            round::round_translations
-                .before(TransformSystem::TransformPropagate),
-            round::restore_translations
-                .after(TransformSystem::TransformPropagate),
+            round::round_translations.before(TransformSystem::TransformPropagate),
+            round::restore_translations.after(TransformSystem::TransformPropagate),
             input::reset_virtual_inputs,
-
         ));
 
         app.add_systems(OnEnter(DebugStates::Disabled), camera::handle_disable_debug);
@@ -171,8 +160,6 @@ pub enum GameSystems {
     /// IE: Reaction to hitboxes, animations etc.
     PostLogic,
 }
-
-
 
 #[derive(States, Clone, Eq, PartialEq, Hash, Default, Debug)]
 pub enum ScreenStates {

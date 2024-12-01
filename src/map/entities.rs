@@ -26,10 +26,7 @@ pub struct SpawnEntity {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub enum EntityType {
-    Firefly,
-    Water,
-}
+pub enum EntityType { Firefly, Water }
 
 impl EntityType {
     pub fn parse(entity_type: &str) -> Option<Self> {

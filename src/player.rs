@@ -127,7 +127,7 @@ impl Default for Player {
 pub fn spawn_player(
     trigger: Trigger<SpawnPlayer>,
     common_assets: Res<CommonAssets>,
-    gamepads: Res<Gamepads>,
+//    gamepads: Res<Gamepads>,
     mut entity_index: ResMut<EntityIndex>,
     mut commands: Commands,
 ) {
@@ -174,7 +174,7 @@ pub fn spawn_player(
 pub fn assign_gamepad_to_player(
     mut events: EventReader<GamepadEvent>,
     mut players: Query<Entity, With<Player>>,
-    gamepads: Res<Gamepads>,
+    //gamepads: Res<Gamepads>,
     mut commands: Commands,
 ) {
     for event in events.read() {
@@ -248,9 +248,7 @@ pub fn update_players(
         if cc.velocity.length_squared() < 0.01 {
             cc.velocity = Vec3::ZERO;
             is_moving = false;
-        }
-
-        // Updates behavior
+        } // Updates behavior
         player.behavior = match player.behavior {
             PlayerBehavior::Idle => {
                 match is_moving {
@@ -265,7 +263,7 @@ pub fn update_players(
                 }
             },
         };
-
+2
         // Opens equipment menu
         if buttons.just_pressed(buttons::START) {
             commands.trigger(ToggleEquipmentMenu);

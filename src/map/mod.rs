@@ -149,7 +149,7 @@ fn process_group_layer(
         group_layer_props,
         group_layer_name,
         map,
-        &tileset_assets,
+        tileset_assets,
     );
 
     // Forms graphics meshes, parallel with the map's tileset entries.
@@ -187,12 +187,22 @@ fn process_group_layer(
                     let tile_vertices = match tile_geom.shape.is_flipped() {
                         false => GraphicsVertex::quad(
                             [gstrip.left, gstrip.right, gstrip_next.right, gstrip_next.left],
-                            [I16Vec2::new(tile.uv1.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv1.y)],
+                            [
+                                I16Vec2::new(tile.uv1.x, tile.uv2.y),
+                                I16Vec2::new(tile.uv2.x, tile.uv2.y),
+                                I16Vec2::new(tile.uv2.x, tile.uv1.y),
+                                I16Vec2::new(tile.uv1.x, tile.uv1.y)
+                            ],
                             *vert_offset,
                         ),
                         true => GraphicsVertex::quad(
                             [gstrip.right, gstrip_next.right, gstrip_next.left, gstrip.left],
-                            [I16Vec2::new(tile.uv2.x, tile.uv2.y), I16Vec2::new(tile.uv2.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv1.y), I16Vec2::new(tile.uv1.x, tile.uv2.y)],
+                            [
+                                I16Vec2::new(tile.uv2.x, tile.uv2.y), 
+                                I16Vec2::new(tile.uv2.x, tile.uv1.y), 
+                                I16Vec2::new(tile.uv1.x, tile.uv1.y), 
+                                I16Vec2::new(tile.uv1.x, tile.uv2.y)
+                            ],
                             *vert_offset,
                         ),
                     };

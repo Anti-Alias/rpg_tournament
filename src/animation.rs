@@ -103,8 +103,8 @@ impl Animation {
 pub struct AnimationSync(pub Entity);
 
 #[derive(Clone, Default, Debug)]
-pub struct Frame {
-    pub sprite: Sprite3d,
+pub struct Frame<M: SizedMaterial> {
+    pub sprite: Sprite3d<M>,
     pub duration: Duration,
 }
 
@@ -139,8 +139,8 @@ pub enum AnimationMode {
 }
 
 /// Updates sprite entities that have an animation that has changed recently.
-pub fn update_animations(
-    mut animation_q: Query<(&mut Sprite3d, &mut AnimationState, &Handle<AnimationSet>)>,
+pub fn update_animations<M: SizedMaterial>(
+//    mut animation_q: Query<(&mut Sprite3d<M>, &mut AnimationState, &Handle<AnimationSet>)>,
     animations: Res<Assets<AnimationSet>>,
     time: Res<Time>,
 ) {
@@ -188,9 +188,9 @@ pub fn update_animations(
 }
 
 /// Synchronizes sprites
-pub fn sync_animations(
-    mut sync_q: Query<(&mut Sprite3d, &AnimationSync)>,
-    animation_q: Query<&Sprite3d, Without<AnimationSync>>,
+pub fn sync_animations<M: SizedMaterial>(
+    mut sync_q: Query<(&mut Sprite3d<M>, &AnimationSync)>,
+    animation_q: Query<&Sprite3d<M>, Without<AnimationSync>>,
 ) {
     for (mut dest_sprite, AnimationSync(anim_id)) in &mut sync_q {
         let Ok(anim_sprite) = animation_q.get(*anim_id) else {

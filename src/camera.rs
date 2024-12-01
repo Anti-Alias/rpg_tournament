@@ -6,6 +6,7 @@ use bevy::input::mouse::MouseMotion;
 use bevy::math::Vec3A;
 use bevy::render::camera::{CameraMainTextureUsages, CameraProjection, CameraRenderGraph, Exposure};
 use bevy::render::primitives::Frustum;
+use bevy::render::sync_world::SyncToRenderWorld;
 use bevy::render::view::{ColorGrading, VisibleEntities};
 use crate::round::Round;
 use crate::EntityIndex;
@@ -29,6 +30,8 @@ pub struct GameCameraBundle {
     pub color_grading: ColorGrading,
     pub exposure: Exposure,
     pub main_texture_usages: CameraMainTextureUsages,
+    pub msaa: Msaa,
+    pub sync: SyncToRenderWorld,
     pub round: Round,
 }
 
@@ -36,8 +39,8 @@ impl Default for GameCameraBundle {
     fn default() -> Self {
         let mut camera = Self {
             game_camera: GameCamera::default(),
-            camera_render_graph: CameraRenderGraph::new(Core3d),
             camera: Default::default(),
+            camera_render_graph: CameraRenderGraph::new(Core3d),
             projection: Default::default(),
             visible_entities: Default::default(),
             frustum: Default::default(),
@@ -45,10 +48,12 @@ impl Default for GameCameraBundle {
             global_transform: Default::default(),
             camera_3d: Default::default(),
             tonemapping: Default::default(),
+            deband_dither: DebandDither::Enabled,
             color_grading: Default::default(),
             exposure: Default::default(),
             main_texture_usages: Default::default(),
-            deband_dither: DebandDither::Enabled,
+            msaa: Msaa::Off,
+            sync: SyncToRenderWorld,
             round: Round::default(),
         };
         camera.color_grading.global.post_saturation = 1.1;
@@ -126,7 +131,7 @@ impl ProjectionKind {
     }
 }
 
-#[derive(Component, Debug, Clone, Default, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component, Default)]
 pub struct DualProjection {
     pub kind: ProjectionKind,
@@ -134,12 +139,28 @@ pub struct DualProjection {
     pub perspective: PerspectiveProjection,
 }
 
-impl CameraProjection for DualProjection {    
+impl Default for DualProjection {
+    fn default() -> Self {
+        Self {
+            kind: default(),
+            orthographic: OrthographicProjection::default_3d(),
+            perspective: default(),
+        }
+    }
+}
+
+impl CameraProjection for DualProjection { 
     fn get_clip_from_view(&self) -> Mat4 {
         match self.kind {
             ProjectionKind::Orthographic => self.orthographic.get_clip_from_view() * Mat4::from_scale(Vec3::new(1.0, SQRT_2, 1.0)),
             ProjectionKind::Perspective => self.perspective.get_clip_from_view(),
         }
+    }
+    fn get_clip_from_view_for_sub(&self, sub_view: &bevy::render::camera::SubCameraView) -> Mat4 {
+       match self.kind {
+            ProjectionKind::Orthographic => self.orthographic.get_clip_from_view_for_sub(sub_view) * Mat4::from_scale(Vec3::new(1.0, SQRT_2, 1.0)),
+            ProjectionKind::Perspective => self.perspective.get_clip_from_view_for_sub(sub_view),
+       } 
     }
     fn update(&mut self, width: f32, height: f32) {
         match self.kind {

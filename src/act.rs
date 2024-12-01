@@ -10,6 +10,7 @@ pub impl<'a> StartEnvExt for StartEnv<'a> {
     
     fn print(&mut self, str: &'static str) {
         self.start(move |_env| println!("{str}"));
+        lkjljsdlfjs
     }
 
     fn wait(&mut self, duration: Duration) {

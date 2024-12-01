@@ -16,10 +16,10 @@
         },
         {
             "fileName": "../maps/test_map_3.tmx",
-            "height": 384,
+            "height": 560,
             "width": 1184,
             "x": 0,
-            "y": -384
+            "y": -560
         }
     ],
     "onlyShowAdjacentMaps": false,
