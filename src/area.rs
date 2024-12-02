@@ -2,6 +2,7 @@ use std::f32::consts::PI;
 use bevy::pbr::CascadeShadowConfigBuilder;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
+use messages::InitArea;
 use crate::camera::GameCameraBundle;
 use crate::daynight::Sunlight;
 use crate::map::Area;
@@ -17,6 +18,10 @@ pub struct CurrentArea {
 }
 
 impl CurrentArea {
+
+    pub fn new(name: &'static str, area: Handle<Area>) -> Self {
+        Self { name, area, loaded_maps: HashMap::new(), }
+    }
 
     fn is_touching_rect(&self, rect: Rect) -> bool {
         for map_rect in self.loaded_maps.values() {
@@ -36,43 +41,43 @@ fn rects_touching(a: Rect, b: Rect) -> bool {
 /// Sets up environment for dynamically loading/unloading maps from a map world.
 /// Unloads existing world if already set.
 pub fn init_area(
-    trigger: Trigger<messages::InitArea>,
+    trigger: Trigger<InitArea>,
     current_area: Option<ResMut<CurrentArea>>,
     assets: Res<AssetServer>,
     mut commands: Commands,
 ) {
-    let message = trigger.event();
+    let InitArea { name: area_name, file: area_file } = trigger.event();
     match current_area {
-        Some(mut current_area) if message.name != current_area.name => {
-            current_area.name = message.name;
-            current_area.area = assets.load(message.file);
+        Some(mut current_area) if *area_name != current_area.name => {
+            current_area.name = *area_name;
+            current_area.area = assets.load(*area_file);
         },
         None => {
-
             // Spawns sun
-            let mut sun = DirectionalLightBundle::default();
-            sun.directional_light.shadows_enabled = true;
-            sun.directional_light.illuminance *= 0.5;
-            sun.transform.rotate(Quat::from_euler(EulerRot::YXZ, PI/4.0, -PI/4.0, 0.0));
-            sun.cascade_shadow_config = CascadeShadowConfigBuilder {
-                num_cascades: 1,
-                minimum_distance: 128.0,
-                maximum_distance: 1024.0,
-                overlap_proportion: 0.0,
-                ..default()
-            }.build();
-            commands.spawn((Name::new("sun"), sun, Sunlight::default()));
+            commands.spawn((
+                Name::new("sun"),
+                DirectionalLight {
+                    shadows_enabled: true,
+                    illuminance: light_consts::lux::AMBIENT_DAYLIGHT * 0.5,
+                    ..default()
+                },
+                CascadeShadowConfigBuilder {
+                    num_cascades: 1,
+                    minimum_distance: 128.0,
+                    maximum_distance: 1024.0,
+                    overlap_proportion: 0.0,
+                    ..default()
+                }.build(),
+                Transform::from_rotation(Quat::from_euler(EulerRot::YXZ, PI/4.0, -PI/4.0, 0.0)),
+                Sunlight::default()
+            ));
     
             // Spawns camera
             commands.spawn((Name::new("camera"), GameCameraBundle::default()));
 
             // Configures area, which will stream in maps into the world
-            let area = assets.load::<Area>(message.file);
-            commands.insert_resource(CurrentArea {
-                name: message.name,
-                area,
-                loaded_maps: HashMap::new(),
-            })
+            let area = assets.load::<Area>(*area_file);
+            commands.insert_resource(CurrentArea { name: *area_name, area, loaded_maps: HashMap::new() })
         },
         _ => {},
     }

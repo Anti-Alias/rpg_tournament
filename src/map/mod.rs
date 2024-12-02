@@ -12,6 +12,8 @@ use bitflags::bitflags;
 use mesh::create_bevy_mesh;
 use mesh::GraphicsMesh;
 use mesh::GraphicsVertex;
+use messages::DespawnMap;
+use messages::SpawnMap;
 use tiled_parser::PropertyValue;
 use tiled_parser::TileLayer;
 use tiled_parser::TileLayerRegion;
@@ -27,19 +29,17 @@ pub const THH: i16 = 1; // Half tile height
 /// Spawns a [`Map`] entity.
 /// Map contents load asynchronously.
 pub fn spawn_map(
-    trigger: Trigger<messages::SpawnMap>,
+    trigger: Trigger<SpawnMap>,
     mut entities: ResMut<EntityIndex>,
     mut commands: Commands,
     assets: Res<AssetServer>,
 ) {
-    let message = trigger.event();
-    let map_file = &message.file;
+    let SpawnMap { file: map_file, position: map_position } = trigger.event();
     let map_handle: Handle<Map> = assets.load(map_file);
-    let map_transf = Transform::from_translation(message.position);
     let map_entity = commands.spawn((
         Name::new(format!("map-chunk-{}", map_file)),
         MapStatus::Loading(map_handle),
-        SpatialBundle::from_transform(map_transf)
+        Transform::from_translation(*map_position),
     )).id();
     log::info!("Spawned map `{map_file}`");
     entities.maps.insert(map_file.clone(), map_entity);
@@ -47,11 +47,11 @@ pub fn spawn_map(
 
 /// Despawns a [`Map`].
 pub fn despawn_map(
-    trigger: Trigger<messages::DespawnMap>,
+    trigger: Trigger<DespawnMap>,
     mut entities: ResMut<EntityIndex>,
     mut commands: Commands,
 ) {
-    let map_file = &trigger.event().file;
+    let DespawnMap { file: map_file }= &trigger.event();
     let map_entity = match entities.maps.remove(map_file) {
         Some(entity) => entity,
         None => panic!("Map '{}' not spawned", map_file),
@@ -62,18 +62,16 @@ pub fn despawn_map(
 
 /// Monitors loading [`Map`] entities, and finalizes them once they finish loading.
 pub fn process_loaded_maps(
-    mut commands: Commands,
     mut map_entities: Query<(Entity, &mut MapStatus, &Transform)>,
     mut material_assets: ResMut<Assets<StandardMaterial>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
     tileset_assets: Res<Assets<Tileset>>,
     map_assets: Res<Assets<Map>>,
     asset_server: Res<AssetServer>,
+    mut commands: Commands,
 ) {
     for (map_entity, mut map_status, map_transf) in &mut map_entities {
-        let MapStatus::Loading(ref map_handle) = *map_status else {
-            continue;
-        };
+        let MapStatus::Loading(ref map_handle) = *map_status else { continue };
         if asset_server.is_loaded_with_dependencies(map_handle) {
             commands.entity(map_entity).despawn_descendants();
             process_map(
@@ -290,25 +288,19 @@ fn process_group_layer(
             map.map.tile_width() as f32,
             map.map.tile_height() as f32,
         );
-        commands.entity(map_entity).with_children(|b| {
-            b.spawn(PbrBundle {
-                mesh: mesh_assets.add(mesh),
-                material: mat.material,
-                ..default()
-            });
-        });
+        commands.entity(map_entity).with_child((
+           Mesh3d(mesh_assets.add(mesh)),
+           MeshMaterial3d(mat.material),
+        ));
     }
 
     // Spawns cliff mesh
     let cliff_material = material_assets.add(StandardMaterial { base_color: Color::BLACK, unlit: true, ..default() });
     let cliff_mesh = create_bevy_mesh(cliff_mesh, 100.0, 100.0, map.map.tile_width() as f32, map.map.tile_height() as f32);
-    commands.entity(map_entity).with_children(|b| {
-        b.spawn(PbrBundle {
-            mesh: mesh_assets.add(cliff_mesh),
-            material: cliff_material,
-            ..default()
-        });
-    });
+    commands.entity(map_entity).with_child((
+        Mesh3d(mesh_assets.add(cliff_mesh)),
+        MeshMaterial3d(cliff_material),
+    ));
 }
 
 

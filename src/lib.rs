@@ -12,23 +12,18 @@ mod input;
 mod item;
 mod equipment;
 mod debug;
-mod ui;
 
 use bevy::prelude::*;
 use bevy::pbr::{DirectionalLightShadowMap, PbrProjectionPlugin};
 use bevy::render::camera::CameraProjectionPlugin;
 
 //use bevy_inspector_egui::quick::{ResourceInspectorPlugin, WorldInspectorPlugin};
-use bevy::utils::{warn, HashMap};
+use bevy::utils::HashMap;
 use bevy_mod_sprite3d::Sprite3dPlugin;
 
 use camera::DualProjection;
-// use daynight::GameTime;
 use debug::DebugStates;
 use equipment::Equipment;
-use round::RoundUnitSize;
-use ui::messages::MenuEvent;
-use ui::EquipmentMenu;
 
 
 /// Game engine plugin.
@@ -52,18 +47,14 @@ impl Plugin for GamePlugin {
         app.init_state::<ScreenStates>();
         app.init_state::<debug::DebugStates>();
         app.init_resource::<EntityIndex>();
-        app.init_resource::<RoundUnitSize>();
+        app.init_resource::<round::RoundUnitSize>();
 
         // Observers
-        app.add_observer(action::run_action);
-        app.add_observer(action::quit_action);
         app.add_observer(map::spawn_map);
         app.add_observer(map::despawn_map);
         app.add_observer(map::spawn_entity);
         app.add_observer(player::spawn_player);
         app.add_observer(area::init_area);
-        app.add_observer(ui::toggle_equipment_menu);
-        app.add_observer(ui::handle_menu_events);
 
         // Daynight
         app.init_resource::<daynight::GameTime>();
@@ -72,10 +63,13 @@ impl Plugin for GamePlugin {
         app.init_asset::<map::Map>();
         app.init_asset::<map::Tileset>();
         app.init_asset::<map::Area>();
-        app.init_asset::<animation::AnimationSet>();
+        app.init_asset::<animation::AnimationSetData>();
         app.init_asset_loader::<map::MapLoader>();
         app.init_asset_loader::<map::TilesetLoader>();
         app.init_asset_loader::<map::AreaLoader>();
+
+        // Etc
+        app.init_resource::<common::CommonAssets>();
 
         // System sets
         app.configure_sets(Update, (
@@ -92,9 +86,7 @@ impl Plugin for GamePlugin {
             (
                 input::map_keyboard,
                 input::map_gamepads,
-                ui::render_equipment_menu.run_if(resource_exists_and_changed::<EquipmentMenu>),
                 player::assign_gamepad_to_player,
-                action::run_action_queues,
                 map::process_loaded_maps,
                 area::stream_current_area,
                 area::despawn_area_locals,
@@ -111,7 +103,6 @@ impl Plugin for GamePlugin {
                 player::update_character_controllers.after(player::update_players),
                 player::update_player_animations.after(player::update_players),
                 mobs::update_fireflies,
-                ui::handle_interactions::<MenuEvent>,
                 debug::toggle_debug,
                 camera::update_flycam,
                 (
@@ -179,5 +170,4 @@ pub mod messages {
     pub use crate::area::messages::InitArea;
     pub use crate::map::messages::SpawnMap;
     pub use crate::map::messages::DespawnMap;
-    pub use crate::ui::messages::ToggleEquipmentMenu;
 }

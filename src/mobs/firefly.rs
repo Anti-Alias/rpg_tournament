@@ -1,6 +1,4 @@
-use rand::prelude::*;
 use std::f32::consts::{SQRT_2, TAU};
-use std::time::Duration;
 use bevy::prelude::*;
 use crate::area::AreaLocal;
 use crate::common::CommonAssets;
@@ -49,6 +47,7 @@ pub fn spawn_firefly(
     common_assets: &CommonAssets,
     time_frac: f32,
 ) {
+
     // Firefly settings based on the time of day
     let mut visibility = Visibility::Visible;
     let mut behavior = FireflyBehavior::Flying; 
@@ -81,7 +80,7 @@ pub fn spawn_firefly(
                 ..default()
             },
         ))
-        .with_child(sphere);
+        .add_child(sphere);
 }
 
 

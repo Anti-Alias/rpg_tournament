@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_mod_sprite3d::Sprite3d;
 use derive_more::*;
-use crate::animation::{AnimationBundle, AnimationState, AnimationSync};
+use crate::animation::{AnimationBundle, AnimationSet, AnimationState, AnimationSync};
 use crate::common::CommonAssets;
 
 /// Component that stores [`Equippable`]s.
@@ -127,10 +127,7 @@ const HAT_OFFSET: f32 = 0.003;
 pub fn spawn_equipment_entities(
     common_assets: Res<CommonAssets>,
     assets: Res<AssetServer>,
-    mut entities_with_equipment: Query<
-        (Entity, &Equipment),
-        Or<(Added<Equipment>, Changed<Equipment>)>
-    >,
+    mut entities_with_equipment: Query<(Entity, &Equipment), Or<(Added<Equipment>, Changed<Equipment>)>>,
     mut commands: Commands,
 ) {
 
@@ -142,9 +139,9 @@ pub fn spawn_equipment_entities(
         let item_id = commands
             .spawn(AnimationBundle {
                 sprite3d: Sprite3d { color: item_color.into(), ..default() },
-                animation_set: common_assets.animations.player.clone(),
+                animation_set: AnimationSet(common_assets.animations.player.clone()),
                 animation_state: AnimationState { stopped: true, ..default() },
-                material: assets.add(item_mat),
+                material: MeshMaterial3d(assets.add(item_mat)),
                 transform: Transform::from_xyz(0.0, offset, offset),
                 ..default()
             })
@@ -154,16 +151,16 @@ pub fn spawn_equipment_entities(
     };
 
     // Handles spawning / despawning descendants for all equippable things.
-    for (equip_id, equip) in &mut entities_with_equipment {
-        commands.entity(equip_id).despawn_descendants();
+    for (entity, equip) in &mut entities_with_equipment {
+        commands.entity(entity).despawn_descendants();
         if let Some(ref item) = equip.hat {
-            spawn_equippable(equip_id, item, HAT_OFFSET, &mut commands);
+            spawn_equippable(entity, item, HAT_OFFSET, &mut commands);
         }
         if let Some(ref item) = equip.hair {
-            spawn_equippable(equip_id, item, HAIR_OFFSET, &mut commands);
+            spawn_equippable(entity, item, HAIR_OFFSET, &mut commands);
         }
         if let Some(ref item) = equip.outfit {
-            spawn_equippable(equip_id, item, OUTFIT_OFFSET, &mut commands);
+            spawn_equippable(entity, item, OUTFIT_OFFSET, &mut commands);
         }
     }
 }

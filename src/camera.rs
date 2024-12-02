@@ -211,7 +211,7 @@ pub fn update_flycam(
     time: Res<Time>,
 ) {
     const EPS: f32 = 0.001;
-    let secs = time.delta_seconds();
+    let secs = time.delta_secs();
     for (mut flycam, mut transform) in &mut flycams {
 
         // Rotates flycam

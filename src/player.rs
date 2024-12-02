@@ -13,7 +13,6 @@ use crate::area::AreaStreamer;
 use crate::common::CommonAssets;
 use crate::input::{GamepadMapping, KeyboardMapping, StickConfig, StickType, VButtons, VSticks};
 use crate::equipment::{Equipment, Hair, HairKind, Outfit};
-use crate::messages::ToggleEquipmentMenu;
 use crate::round::Round;
 use crate::EntityIndex;
 
@@ -128,7 +127,7 @@ impl Default for Player {
 pub fn spawn_player(
     trigger: Trigger<SpawnPlayer>,
     common_assets: Res<CommonAssets>,
-    gamepads: Query<(Entity, &Gamepad)>,
+    gamepads: Query<Entity, With<Gamepad>>,
     mut entity_index: ResMut<EntityIndex>,
     mut commands: Commands,
 ) {
@@ -153,9 +152,10 @@ pub fn spawn_player(
     )).id();
    
     // Inserts gamepad mapping to player if there's already a gamepad connected
-    if let Some((gamepad_e, gamepad)) = gamepads.iter().next() {
-        let mapping = create_gamepad_mapping(gamepad);
-        commands.entity(player_id).insert(mapping);
+    if let Some(gamepad) = gamepads.iter().next() {
+        commands
+            .entity(player_id)
+            .insert(create_gamepad_mapping(gamepad));
     }
     entity_index.player = Some(player_id);
 }
@@ -188,15 +188,12 @@ pub fn assign_gamepad_to_player(
     }
 }
 
-pub fn update_players(
-    mut commands: Commands,
-    mut players: Query<(
-        &mut Player,
-        &mut CharacterController,
-        &VButtons,
-        &VSticks
-    )>
-) {
+pub fn update_players(mut players: Query<(
+    &mut Player,
+    &mut CharacterController,
+    &VButtons,
+    &VSticks
+)>) {
     for (mut player, mut cc, buttons, sticks) in &mut players {
 
         // Determines player's travel direction.
@@ -256,11 +253,6 @@ pub fn update_players(
                 }
             },
         };
-
-        // Opens equipment menu
-        if buttons.just_pressed(buttons::START) {
-            commands.trigger(ToggleEquipmentMenu);
-        }
     }
 }
 

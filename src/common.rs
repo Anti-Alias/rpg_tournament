@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::animation::{AnimationSet, AnimationSetData};
+use crate::animation::AnimationSetData;
 use crate::player;
 
 /// Resource that stores simple, common assets used across the application.

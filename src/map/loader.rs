@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext};
+use bevy::asset::{AssetLoader, LoadContext};
 use bevy::asset::io::Reader;
 use tiled_parser as tp;
 use thiserror::*;
@@ -15,11 +15,11 @@ impl AssetLoader for MapLoader {
     type Settings = ();
     type Error = MapLoadError;
 
-    async fn load<'a>(
-        &'a self,
-        reader: &'a mut Reader<'_>,
-        _settings: &'a (),
-        load_context: &'a mut LoadContext<'_>,
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &(),
+        load_context: &mut LoadContext<'_>,
     ) -> Result<Map, MapLoadError> {
 
         // Reads map bytes
@@ -85,11 +85,11 @@ impl AssetLoader for TilesetLoader {
     type Settings = ();
     type Error = MapLoadError;
 
-    async fn load<'a>(
-        &'a self,
-        reader: &'a mut Reader<'_>,
-        _settings: &'a (),
-        load_context: &'a mut LoadContext<'_>,
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &(),
+        load_context: &mut LoadContext<'_>,
     ) -> Result<Tileset, MapLoadError> {
 
         // Reads tileset bytes
@@ -133,15 +133,16 @@ impl AssetLoader for TilesetLoader {
 #[derive(Default)]
 pub struct AreaLoader {}
 impl AssetLoader for AreaLoader {
+
     type Asset = Area;
     type Settings = ();
     type Error = AreaLoadError;
 
-    async fn load<'a>(
-        &'a self,
-        reader: &'a mut Reader<'_>,
-        _settings: &'a (),
-        _load_context: &'a mut LoadContext<'_>,
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &(),
+        _load_context: &mut LoadContext<'_>,
     ) -> Result<Area, AreaLoadError>
     {
         // Reads tileset bytes
