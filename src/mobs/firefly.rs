@@ -20,28 +20,23 @@ pub struct Firefly {
     sphere_id: Entity,
 }
 
-impl Firefly {
-    pub fn new(sphere_id: Entity, home: Vec3) -> Self {
-        let mut rng = rand::thread_rng();
-        let cycle_duration: f32 = rng.gen_range(4.0..6.0);
-        let cycle_start: f32 = rng.gen_range(0.0..cycle_duration);
-        let radius = rng.gen_range(8.0..12.0);
-        let mut timer = Timer::new(Duration::from_secs_f32(cycle_duration), TimerMode::Repeating);
-        timer.set_elapsed(Duration::from_secs_f32(cycle_start));
+impl Default for Firefly {
+    fn default() -> Self {
         Self {
-            home,
-            timer,
-            behavior: FireflyBehavior::Flying,
-            fly_radius: radius,
-            scale: 1.0,
-            sphere_id
+            home: default(),
+            timer: default(),
+            behavior: default(),
+            fly_radius: default(),
+            scale: default(),
+            sphere_id: Entity::PLACEHOLDER,
         }
     }
 }
 
 /// Current behavior of a [`Firefly`]
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Default, Debug)]
 pub enum FireflyBehavior {
+    #[default]
     Flying,     // Regular flying. Triggered when revealing finishes.
     Hiding,     // Flying + shrinking. Triggered when night comes.
     Hidden,     // Hidden and stationary. Triggered when hiding finishes.
@@ -54,29 +49,39 @@ pub fn spawn_firefly(
     common_assets: &CommonAssets,
     time_frac: f32,
 ) {
-    // Root light
-    let mut light = PointLightBundle::default();
-    let light_color = Color::linear_rgb(1.0, 1.0, 0.5);
-    light.point_light.color = light_color;
-    light.point_light.intensity = FIREFLY_LIGHT_INTENSITY;
-    light.point_light.range = 64.0;
-    light.transform = Transform::from_translation(position);
-    // Child sphere
-    let mut sphere = PbrBundle::default();
-    sphere.material = common_assets.materials.white.clone();
-    sphere.mesh = common_assets.meshes.sphere.clone();
-    sphere.transform.scale = FIREFLY_BODY_SIZE;
-    let sphere_id = commands.spawn(sphere).id();
-    // Firefly
-    let mut firefly = Firefly::new(sphere_id, position);
+    // Firefly settings based on the time of day
+    let mut visibility = Visibility::Visible;
+    let mut behavior = FireflyBehavior::Flying; 
+    let mut scale = 1.0;
     if time_frac >= TIME_FRAC_MORNING && time_frac < TIME_FRAC_NIGHT {
-        firefly.behavior = FireflyBehavior::Hidden;
-        firefly.scale = 0.0;
-        light.visibility = Visibility::Hidden;
+        visibility = Visibility::Hidden;
+        behavior = FireflyBehavior::Hidden;
+        scale = 0.0;
     }
+
+    // Spawns child sphere 
+    let sphere = commands.spawn((
+       Mesh3d(common_assets.meshes.sphere.clone()),
+       MeshMaterial3d(common_assets.materials.white.clone()),
+       Transform::from_scale(FIREFLY_BODY_SIZE),
+    )).id();
+
+    // Spawns firefly
     commands
-        .spawn((Name::new("firefly"), firefly, light, AreaLocal::default()))
-        .add_child(sphere_id);
+        .spawn((
+            Name::new("firefly"),
+            AreaLocal::default(),
+            Transform::from_translation(position),
+            visibility,
+            Firefly { behavior, scale, ..default() },
+            PointLight {
+                color: Color::linear_rgb(1.0, 1.0, 0.5),
+                intensity: FIREFLY_LIGHT_INTENSITY,
+                range: 64.0,
+                ..default()
+            },
+        ))
+        .with_child(sphere);
 }
 
 
@@ -114,7 +119,7 @@ pub fn update_fireflies(
     for (mut firefly, mut light, _, mut visibility) in &mut fireflies {
         match firefly.behavior {
             FireflyBehavior::Hiding => {
-                firefly.scale -= 1.0 * time.delta_seconds();
+                firefly.scale -= 1.0 * time.delta_secs();
                 firefly.scale = firefly.scale.max(0.0);
                 light.intensity = FIREFLY_LIGHT_INTENSITY * firefly.scale;
                 let mut body_transf = firefly_bodies.get_mut(firefly.sphere_id).unwrap();
@@ -125,7 +130,7 @@ pub fn update_fireflies(
                 }
             },
             FireflyBehavior::Revealing => {
-                firefly.scale += 1.0 * time.delta_seconds();
+                firefly.scale += 1.0 * time.delta_secs();
                 firefly.scale = firefly.scale.min(1.0);
                 light.intensity = FIREFLY_LIGHT_INTENSITY * firefly.scale;
                 let mut body_transf = firefly_bodies.get_mut(firefly.sphere_id).unwrap();

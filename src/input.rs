@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::warn};
 use smallvec::SmallVec;
 
 
@@ -92,21 +92,21 @@ where
 /// Maps gamepad inputs to various fields on an entity.
 #[derive(Component, Clone, Debug)]
 pub struct GamepadMapping {
-    pub gamepad: Gamepad,
-    button_mappings: SmallVec<[(GamepadButtonType, u32); 16]>,
+    pub gamepad_entity: Entity,
+    button_mappings: SmallVec<[(GamepadButton, u32); 16]>,
     stick_mappings: SmallVec<[(StickType, StickConfig); 2]>,
 }
 
 impl GamepadMapping {
-    pub fn new(gamepad: Gamepad) -> Self {
+    pub fn new(gamepad_entity: Entity) -> Self {
         Self {
-            gamepad,
+            gamepad_entity,
             button_mappings: SmallVec::default(),
             stick_mappings: SmallVec::default(),
         }
     }
 
-    pub fn with_button(mut self, button: GamepadButtonType, vbutton: u32) -> Self {
+    pub fn with_button(mut self, button: GamepadButton, vbutton: u32) -> Self {
         self.button_mappings.push((button, vbutton));
         self
     }
@@ -142,38 +142,37 @@ pub fn map_keyboard(
     }
 }
 
-/// Maps gamepads to virtual buttons.
 pub fn map_gamepads(
-    input: Res<ButtonInput<GamepadButton>>,
-    axes: Res<Axis<GamepadAxis>>,
-    mut vbutton_q: Query<(&GamepadMapping, &mut VButtons)>,
-    mut vsticks_q: Query<(&GamepadMapping, &mut VSticks)>,
+    gamepad_q: Query<&Gamepad>,
+    mut button_mappings: Query<(&GamepadMapping, &mut VButtons)>,
+    mut stick_mappings: Query<(&GamepadMapping, &mut VSticks)>,
 ) {
     // Maps buttons
-    for (gamepad_mapping, mut vbuttons) in &mut vbutton_q {
-        for (button_type, vbutton) in gamepad_mapping.button_mappings.iter().copied() {
-            let button = GamepadButton::new(gamepad_mapping.gamepad, button_type);
-            if input.pressed(button) {
-                vbuttons.press(vbutton);
+    for (gamepad_mapping, mut vbuttons) in &mut button_mappings {
+        let Ok(gamepad) = gamepad_q.get(gamepad_mapping.gamepad_entity) else { continue };
+        for (button, vbutton) in gamepad_mapping.button_mappings.iter().copied() {
+            if gamepad.pressed(button) {
+               vbuttons.press(vbutton);
             }
         }
     }
+
     // Maps sticks
-    for (gamepad_mapping, mut vsticks) in &mut vsticks_q {
+    for (gamepad_mapping, mut vsticks) in &mut stick_mappings {
+        let Ok(gamepad) = gamepad_q.get(gamepad_mapping.gamepad_entity) else { continue };
         for (stick_type, stick_cfg) in gamepad_mapping.stick_mappings.iter().copied() {
-            let gamepad = gamepad_mapping.gamepad;
             let (axis_x, axis_y) = match stick_type {
                 StickType::Left => (
-                    GamepadAxis { gamepad, axis_type: GamepadAxisType::LeftStickX },
-                    GamepadAxis { gamepad, axis_type: GamepadAxisType::LeftStickY },
+                    GamepadAxis::LeftStickX,
+                    GamepadAxis::LeftStickY,
                 ),
                 StickType::Right => (
-                    GamepadAxis { gamepad, axis_type: GamepadAxisType::RightStickX },
-                    GamepadAxis { gamepad, axis_type: GamepadAxisType::RightStickY },
+                    GamepadAxis::RightStickX,
+                    GamepadAxis::RightStickY,
                 ),
             };
-            let Some(mut x) = axes.get(axis_x) else { continue };
-            let Some(mut y) = axes.get(axis_y) else { continue };
+            let Some(mut x) = gamepad.get(axis_x) else { continue };
+            let Some(mut y) = gamepad.get(axis_y) else { continue };
             if x.abs() < stick_cfg.deadzones.x { x = 0.0 }
             if y.abs() < stick_cfg.deadzones.y { y = 0.0 }
             let Some(vstick) = vsticks.get(stick_cfg.vstick_idx) else { continue };

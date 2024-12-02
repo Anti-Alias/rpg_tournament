@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::animation::AnimationSet;
+use crate::animation::{AnimationSet, AnimationSetData};
 use crate::player;
 
 /// Resource that stores simple, common assets used across the application.
@@ -18,7 +18,7 @@ impl FromWorld for CommonAssets {
         let materials = CommonMaterials::new(&assets, &mut materials);
         let mut meshes = world.resource_mut::<Assets<Mesh>>();
         let meshes = CommonMeshes::new(&mut meshes);
-        let mut animations = world.resource_mut::<Assets<AnimationSet>>();
+        let mut animations = world.resource_mut::<Assets<AnimationSetData>>();
         let animations = CommonAnimations::new(&mut animations);
         Self { meshes, materials, animations }
     }
@@ -56,11 +56,11 @@ impl CommonMaterials {
 
 #[derive(Debug)]
 pub struct CommonAnimations {
-    pub player: Handle<AnimationSet>,
+    pub player: Handle<AnimationSetData>,
 }
 
 impl CommonAnimations {
-    fn new(animations: &mut Assets<AnimationSet>) -> Self {
+    fn new(animations: &mut Assets<AnimationSetData>) -> Self {
         Self {
             player: animations.add(crate::player::create_player_animations()),
         }

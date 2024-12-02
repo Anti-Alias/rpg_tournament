@@ -836,7 +836,7 @@ dependencies = [
 [[package]]
 name = "bevy_mod_sprite3d"
 version = "0.1.0"
-source = "git+https://github.com/Anti-Alias/bevy_mod_sprite3d.git?rev=333f9c9610f8ba0b2f6a7ff94aeef2f6a26f8d98#333f9c9610f8ba0b2f6a7ff94aeef2f6a26f8d98"
+source = "git+https://github.com/Anti-Alias/bevy_mod_sprite3d.git?rev=09d2544843d04924c8ef9852bbcd40a96dc4ccc6#09d2544843d04924c8ef9852bbcd40a96dc4ccc6"
 dependencies = [
  "bevy_app",
  "bevy_asset",

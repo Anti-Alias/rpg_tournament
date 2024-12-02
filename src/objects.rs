@@ -9,26 +9,23 @@ pub fn spawn_water(
     common_assets: &CommonAssets,
     assets: &AssetServer,
 ) {
-    let material = StandardMaterial {
+    let material = assets.add(StandardMaterial {
         base_color: LinearRgba::from_u8_array([0, 200, 200, 50]).into(),
         alpha_mode: AlphaMode::Blend,
         perceptual_roughness: 0.0,
         reflectance: 1.0,
         ior: 1.33,
         ..default()
-    };
+    });
     commands.spawn((
         Name::new("Water"),
-        PbrBundle {
-            mesh: common_assets.meshes.plane.clone(),
-            material: assets.add(material),
-            transform: Transform {
-                translation: position,
-                scale: size,
-                ..default()
-            },
+        Mesh3d(common_assets.meshes.plane.clone()),
+        MeshMaterial3d(material),
+        Transform {
+            translation: position,
+            scale: size,
             ..default()
         },
-        AreaLocal { size: Vec2::new(size.x, size.y + size.z) },
+        AreaLocal { size: Vec2::new(size.x, size.y + size.z )}
     ));
 }

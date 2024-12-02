@@ -1,6 +1,4 @@
 mod map;
-mod action;
-mod act;
 mod area;
 mod camera;
 mod round;
@@ -25,7 +23,6 @@ use bevy::utils::{warn, HashMap};
 use bevy_mod_sprite3d::Sprite3dPlugin;
 
 use camera::DualProjection;
-pub use action::ActionKind;
 // use daynight::GameTime;
 use debug::DebugStates;
 use equipment::Equipment;
@@ -182,7 +179,5 @@ pub mod messages {
     pub use crate::area::messages::InitArea;
     pub use crate::map::messages::SpawnMap;
     pub use crate::map::messages::DespawnMap;
-    pub use crate::action::messages::RunAction;
-    pub use crate::action::messages::QuitAction;
     pub use crate::ui::messages::ToggleEquipmentMenu;
 }

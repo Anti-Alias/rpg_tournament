@@ -4,14 +4,44 @@ use bevy::sprite::Anchor;
 use bevy_mod_sprite3d::{SizedMaterial, Sprite3d };
 
 
+#[derive(Component, Clone, Debug)]
+pub struct AnimationState {
+    pub animation_idx: usize,
+    pub frame_idx: usize,
+    pub mode: AnimationMode,
+    pub frame_elapsed: Duration,
+    pub stopped: bool,
+}
+
+impl Default for AnimationState {
+    fn default() -> Self {
+        Self {
+            animation_idx: 0,
+            frame_idx: 0,
+            mode: AnimationMode::default(),
+            frame_elapsed: Duration::from_millis(200),  // 12 FPS
+            stopped: false,
+        }
+    }
+}
+
+/// Current behavior of an [`AnimationState`].
+#[derive(Copy, Clone, Eq, PartialEq, Default, Debug)]
+pub enum AnimationMode {
+    #[allow(unused)]
+    Play,
+    #[default]
+    Loop,
+}
+
 #[derive(Bundle, Debug)]
 pub struct AnimationBundle<M: SizedMaterial = StandardMaterial> {
-    pub animation_set: Handle<AnimationSet>,
+    pub animation_set: AnimationSet,
     pub animation_state: AnimationState,
     pub sprite3d: Sprite3d,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
-    pub material: Handle<M>,
+    pub material: MeshMaterial3d<M>,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
@@ -22,10 +52,7 @@ impl<M: SizedMaterial> Default for AnimationBundle<M> {
          Self {
             animation_set: default(),
             animation_state: default(),
-            sprite3d: Sprite3d {
-                custom_size: Some(Vec2::ZERO),
-                ..default()
-            },
+            sprite3d: Sprite3d { custom_size: Some(Vec2::ZERO), ..default() },
             transform: default(),
             global_transform: default(),
             material: default(),
@@ -36,14 +63,17 @@ impl<M: SizedMaterial> Default for AnimationBundle<M> {
     }
 }
 
+#[derive(Component, Debug, Clone, Default)]
+pub struct AnimationSet(pub Handle<AnimationSetData>); 
+
 /// A set of [`Animation`]s.
 #[derive(Asset, TypePath, Clone, Default, Debug)]
-pub struct AnimationSet {
+pub struct AnimationSetData {
     pub animations: Vec<Animation>,
 }
 
-impl AnimationSet {
-    pub const EMPTY: Self = AnimationSet {
+impl AnimationSetData {
+    pub const EMPTY: Self = AnimationSetData {
         animations: vec![],
     };
 
@@ -61,7 +91,7 @@ impl AnimationSet {
     }
 }
 
-/// A single animation in an [`AnimationSet`].
+/// A single animation in an [`AnimationSetData`].
 #[derive(Clone, Default, Debug)]
 pub struct Animation {
     pub frames: Vec<Frame>,
@@ -103,45 +133,16 @@ impl Animation {
 pub struct AnimationSync(pub Entity);
 
 #[derive(Clone, Default, Debug)]
-pub struct Frame<M: SizedMaterial> {
-    pub sprite: Sprite3d<M>,
+pub struct Frame {
+    pub sprite: Sprite3d,
     pub duration: Duration,
 }
 
-#[derive(Component, Clone, Debug)]
-pub struct AnimationState {
-    pub animation_idx: usize,
-    pub frame_idx: usize,
-    pub mode: AnimationMode,
-    pub frame_elapsed: Duration,
-    pub stopped: bool,
-}
-
-impl Default for AnimationState {
-    fn default() -> Self {
-        Self {
-            animation_idx: 0,
-            frame_idx: 0,
-            mode: AnimationMode::default(),
-            frame_elapsed: Duration::from_millis(200),  // 12 FPS
-            stopped: false,
-        }
-    }
-}
-
-/// Current behavior of an [`AnimationState`].
-#[derive(Copy, Clone, Eq, PartialEq, Default, Debug)]
-pub enum AnimationMode {
-    #[allow(unused)]
-    Play,
-    #[default]
-    Loop,
-}
 
 /// Updates sprite entities that have an animation that has changed recently.
-pub fn update_animations<M: SizedMaterial>(
-//    mut animation_q: Query<(&mut Sprite3d<M>, &mut AnimationState, &Handle<AnimationSet>)>,
-    animations: Res<Assets<AnimationSet>>,
+pub fn update_animations(
+    mut animation_q: Query<(&mut Sprite3d, &mut AnimationState, &AnimationSet)>,
+    animations: Res<Assets<AnimationSetData>>,
     time: Res<Time>,
 ) {
     // For all animations...
@@ -150,7 +151,7 @@ pub fn update_animations<M: SizedMaterial>(
         if anim_state.stopped && !anim_state_changed { continue };
 
         // Consumes time and gets animation set
-        let anim_set = animations.get(anim_set).unwrap();
+        let anim_set = animations.get(&anim_set.0).unwrap();
         anim_state.frame_elapsed += time.delta();
 
         // Gets animation by index
@@ -188,9 +189,9 @@ pub fn update_animations<M: SizedMaterial>(
 }
 
 /// Synchronizes sprites
-pub fn sync_animations<M: SizedMaterial>(
-    mut sync_q: Query<(&mut Sprite3d<M>, &AnimationSync)>,
-    animation_q: Query<&Sprite3d<M>, Without<AnimationSync>>,
+pub fn sync_animations(
+    mut sync_q: Query<(&mut Sprite3d, &AnimationSync)>,
+    animation_q: Query<&Sprite3d, Without<AnimationSync>>,
 ) {
     for (mut dest_sprite, AnimationSync(anim_id)) in &mut sync_q {
         let Ok(anim_sprite) = animation_q.get(*anim_id) else {

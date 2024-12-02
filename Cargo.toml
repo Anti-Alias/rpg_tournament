@@ -11,7 +11,7 @@ extension-trait = "1"
 rand = "0.8"    
 smallvec = "1"
 thiserror = "1"
-bevy_mod_sprite3d = { git="https://github.com/Anti-Alias/bevy_mod_sprite3d.git", rev="333f9c9610f8ba0b2f6a7ff94aeef2f6a26f8d98" }
+bevy_mod_sprite3d = { git="https://github.com/Anti-Alias/bevy_mod_sprite3d.git", rev="09d2544843d04924c8ef9852bbcd40a96dc4ccc6" }
 tiled-parser = { git="https://github.com/Anti-Alias/tiled-parser.git", default-features = false, features=["flate2"] }
 derive_more = { version = "1.0.0", features = ["from"] }
 

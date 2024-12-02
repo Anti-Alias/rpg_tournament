@@ -6,8 +6,9 @@ use bevy::prelude::*;
 use bevy::sprite::Anchor;
 
 
+use bevy_mod_sprite3d::SpriteMaterial3d;
 use messages::SpawnPlayer;
-use crate::animation::{Animation, AnimationBundle, AnimationSet, AnimationState};
+use crate::animation::{Animation, AnimationBundle, AnimationSet, AnimationSetData, AnimationState};
 use crate::area::AreaStreamer;
 use crate::common::CommonAssets;
 use crate::input::{GamepadMapping, KeyboardMapping, StickConfig, StickType, VButtons, VSticks};
@@ -127,42 +128,33 @@ impl Default for Player {
 pub fn spawn_player(
     trigger: Trigger<SpawnPlayer>,
     common_assets: Res<CommonAssets>,
-//    gamepads: Res<Gamepads>,
+    gamepads: Query<(Entity, &Gamepad)>,
     mut entity_index: ResMut<EntityIndex>,
     mut commands: Commands,
 ) {
-
-    let player_hair = Hair {
-        kind: HairKind::Ponytail,
-        color: Color::linear_rgb(1.0, 1.0, 0.0),
-        brightness: 1.0
-    }.into();
-
-    let mut player_bundle = PlayerBundle::default();
-    player_bundle.equipment.hair = Some(player_hair);
-    player_bundle.equipment.outfit = Some(Outfit::Casual1.into());
-    player_bundle.area_streamer =  AreaStreamer { size: Vec2::splat(32.0 * 40.0) };
-    player_bundle.vsticks = VSticks::new(2);
-    player_bundle.animation_bundle.animation_set = common_assets.animations.player.clone();
-    player_bundle.animation_bundle.animation_state = AnimationState { animation_idx: animations::WALK_BASE, ..default() };
-    player_bundle.animation_bundle.material = common_assets.materials.player.clone();
-
-    let player_id = commands
-        .spawn(player_bundle)
-        .insert((
-            Name::new("player"),
-            Transform::from_translation(trigger.event().position),
-            KeyboardMapping::from([
-                (KeyCode::ArrowLeft,    buttons::LEFT),
-                (KeyCode::ArrowRight,   buttons::RIGHT),
-                (KeyCode::ArrowUp,      buttons::UP),
-                (KeyCode::ArrowDown,    buttons::DOWN),
-                (KeyCode::Enter,        buttons::START),
-            ]),
-        ))
-        .id();
-    if let Some(first_gamepad) = gamepads.iter().next() {
-        let mapping = create_gamepad_mapping(first_gamepad);
+    // Spawns player
+    let player_hair = Hair { kind: HairKind::Ponytail, color: Color::linear_rgb(1.0, 1.0, 0.0), brightness: 1.0 }.into();
+    let player_id = commands.spawn((
+        Name::new("player"),
+        Transform::from_translation(trigger.event().position),
+        Equipment { hair: Some(player_hair), outfit: Some(Outfit::Casual1.into()), ..default() },
+        AreaStreamer { size: Vec2::splat(32.0 * 40.0 ), ..default() },
+        AnimationSet(common_assets.animations.player.clone()),
+        AnimationState { animation_idx: animations::WALK_BASE, ..default() },
+        SpriteMaterial3d(common_assets.materials.player.clone()),
+        VSticks::new(2),
+        KeyboardMapping::from([
+            (KeyCode::ArrowLeft,    buttons::LEFT),
+            (KeyCode::ArrowRight,   buttons::RIGHT),
+            (KeyCode::ArrowUp,      buttons::UP),
+            (KeyCode::ArrowDown,    buttons::DOWN),
+            (KeyCode::Enter,        buttons::START),
+        ]),
+    )).id();
+   
+    // Inserts gamepad mapping to player if there's already a gamepad connected
+    if let Some((gamepad_e, gamepad)) = gamepads.iter().next() {
+        let mapping = create_gamepad_mapping(gamepad);
         commands.entity(player_id).insert(mapping);
     }
     entity_index.player = Some(player_id);
@@ -174,14 +166,14 @@ pub fn spawn_player(
 pub fn assign_gamepad_to_player(
     mut events: EventReader<GamepadEvent>,
     mut players: Query<Entity, With<Player>>,
-    //gamepads: Res<Gamepads>,
+    gamepads: Query<(), With<Gamepad>>,
     mut commands: Commands,
 ) {
     for event in events.read() {
         match event {
-            GamepadEvent::Connection(GamepadConnectionEvent { gamepad, connection: GamepadConnection::Connected(_) }) => {
-                let mapping = create_gamepad_mapping(gamepad.clone());
+            GamepadEvent::Connection(GamepadConnectionEvent { gamepad, connection: GamepadConnection::Connected { .. } }) => {
                 for player_id in &mut players {
+                    let mapping = create_gamepad_mapping(*gamepad);
                     commands.entity(player_id).insert(mapping.clone());
                 }
             },
@@ -249,6 +241,7 @@ pub fn update_players(
             cc.velocity = Vec3::ZERO;
             is_moving = false;
         } // Updates behavior
+
         player.behavior = match player.behavior {
             PlayerBehavior::Idle => {
                 match is_moving {
@@ -263,7 +256,7 @@ pub fn update_players(
                 }
             },
         };
-2
+
         // Opens equipment menu
         if buttons.just_pressed(buttons::START) {
             commands.trigger(ToggleEquipmentMenu);
@@ -357,18 +350,18 @@ pub(crate) fn create_material(assets: &AssetServer, path: &'static str) -> Stand
     }
 }
 
-fn create_gamepad_mapping(gamepad: Gamepad) -> GamepadMapping {
+fn create_gamepad_mapping(gamepad: Entity) -> GamepadMapping {
     GamepadMapping::new(gamepad)
-        .with_button(GamepadButtonType::DPadLeft, buttons::LEFT)
-        .with_button(GamepadButtonType::DPadRight, buttons::RIGHT)
-        .with_button(GamepadButtonType::DPadUp, buttons::UP)
-        .with_button(GamepadButtonType::DPadDown, buttons::DOWN)
-        .with_button(GamepadButtonType::Start, buttons::START)
+        .with_button(GamepadButton::DPadLeft, buttons::LEFT)
+        .with_button(GamepadButton::DPadRight, buttons::RIGHT)
+        .with_button(GamepadButton::DPadUp, buttons::UP)
+        .with_button(GamepadButton::DPadDown, buttons::DOWN)
+        .with_button(GamepadButton::Start, buttons::START)
         .with_stick(StickType::Left, StickConfig { vstick_idx: sticks::LEFT, deadzones: Vec2::new(0.125, 0.125) })
 }
 
 /// Utility function to create the animations a player uses.
-pub(crate) fn create_player_animations() -> AnimationSet {
+pub(crate) fn create_player_animations() -> AnimationSetData {
     const SIZE: Vec2 = Vec2::new(64.0, 64.0);
     const STRIDE: Vec2 = Vec2::new(64.0, 0.0);
     const DURATION: Duration = Duration::from_millis(100);
@@ -384,7 +377,7 @@ pub(crate) fn create_player_animations() -> AnimationSet {
     let walk_e = Animation::EMPTY.with_frames(6, Vec2::new(0.0, 6.0)*SIZE, SIZE, STRIDE, DURATION, ANCHOR);
     let walk_w = Animation::EMPTY.with_frames(6, Vec2::new(0.0, 7.0)*SIZE, SIZE, STRIDE, DURATION, ANCHOR);
 
-    AnimationSet::EMPTY.with_animations([
+    AnimationSetData::EMPTY.with_animations([
         idle_s, idle_n, idle_e, idle_w,
         walk_s, walk_n, walk_e, walk_w,
     ])
